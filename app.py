@@ -8,7 +8,7 @@ import streamlit as st
 from supabase import create_client, Client
 
 # ==============================================================================
-# CONFIGURACIÓN DE PÁGINA (SIN SIDEBAR, LAYOUT AMPLIO, ESTILO FIGMA UCN)
+# CONFIGURACIÓN DE PÁGINA (ESTILO OFICIAL ECIEM · UCN)
 # ==============================================================================
 st.set_page_config(
     page_title="Gestión de Inasistencias · ECIEM UCN",
@@ -43,7 +43,7 @@ CARRERAS_OFICIALES = [
 ]
 
 # ==============================================================================
-# ESTILOS CSS CORREGIDOS (CONTRASTE DE LETRAS, TARJETAS SÓLIDAS Y ALINEACIÓN)
+# ESTILOS CSS (ESTÉTICA OFICIAL ECIEM UCN: PÍLDORAS, TARJETAS Y TABLA LIMPIA)
 # ==============================================================================
 CSS_BASE = """
 <style>
@@ -53,12 +53,12 @@ CSS_BASE = """
     color-scheme: light !important;
     --ucn-navy-dark: #002D72;
     --ucn-navy: #003A70;
-    --ucn-navy-light: #004D99;
+    --eciem-slate: #4E73A3;
+    --eciem-pill-bg: #EEF3F8;
     --ucn-gold: #E6B800;
     --ucn-text: #1E293B;
-    --ucn-muted: #526172;
-    --ucn-border: #D5E0EC;
-    --ucn-soft-blue: #EAF1F8;
+    --ucn-muted: #64748B;
+    --ucn-border: #E2E8F0;
 }
 
 /* Ocultar chrome nativo de Streamlit y sidebar */
@@ -75,88 +75,186 @@ html, body, [class*="css"], .stApp {
     color: #1E293B !important;
 }
 
-/* Fondo general de pantallas internas */
+/* Fondo general limpio estilo portal ECIEM */
 .stApp {
-    background: linear-gradient(180deg, #EAF1F8 0%, #F8FAFC 100%) !important;
+    background: #F5F8FC !important;
 }
 
 .block-container {
-    max-width: 1200px !important;
-    padding-top: 1rem !important;
-    padding-bottom: 2.5rem !important;
+    max-width: 1180px !important;
+    padding-top: 0.9rem !important;
+    padding-bottom: 3rem !important;
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
 }
 
 /* ==========================================================================
-   TARJETAS BLANCAS SÓLIDAS (COMPATIBLE CON STREAMLIT 1.38 - 1.67+)
+   ENCABEZADO SUPERIOR LIMPIO (SIN CAJAS ANIDADAS)
    ========================================================================== */
-[data-testid="stVerticalBlockBorderWrapper"],
-div[data-testid="stLayoutWrapper"] > div[style*="border"],
-div:has(> div > [data-testid="stMarkdownContainer"] #ucn-card-marker),
-div:has(> [data-testid="stMarkdownContainer"] #ucn-card-marker) {
-    background-color: #FFFFFF !important;
-    border: 1px solid #D5E0EC !important;
-    border-radius: 14px !important;
-    padding: 1.35rem 1.6rem !important;
-    box-shadow: 0 6px 24px rgba(0, 32, 80, 0.08) !important;
+.ucn-header-bar {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 12px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+    min-height: 62px;
 }
-
-/* Topbar compacta sin espacios sobrantes */
-div:has(> div > [data-testid="stMarkdownContainer"] #ucn-topbar-marker),
-div:has(> [data-testid="stMarkdownContainer"] #ucn-topbar-marker) {
-    background-color: #FFFFFF !important;
-    border: 1px solid #D5E0EC !important;
-    border-radius: 12px !important;
-    padding: 0.65rem 1.25rem !important;
-    box-shadow: 0 2px 8px rgba(0, 32, 80, 0.05) !important;
-    margin-bottom: 0.5rem !important;
+.ucn-brand-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.ucn-logo-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+}
+.ucn-brand-logo {
+    max-height: 38px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+.ucn-brand-divider {
+    width: 1px;
+    height: 28px;
+    background: #E2E8F0;
+    flex-shrink: 0;
+}
+.ucn-unit-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #003A70;
+    line-height: 1.2;
+}
+.ucn-unit-sub {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #64748B;
+    line-height: 1.2;
+}
+.ucn-role-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #003A70;
+    background: #EEF3F8;
+    padding: 0 13px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.ucn-campus-tag {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #003A70;
 }
 
 /* ==========================================================================
-   BOTONES ESTILO UCN
+   BANNER INSTITUCIONAL ESTILIZADO
+   ========================================================================== */
+.ucn-banner {
+    background: linear-gradient(100deg, #002D72 0%, #004488 65%, #1E5A99 100%);
+    border-left: 6px solid #E6B800;
+    border-radius: 14px;
+    padding: 18px 26px;
+    margin-top: 10px;
+    margin-bottom: 16px;
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(0, 45, 114, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.ucn-banner h1 {
+    margin: 0 0 3px 0 !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    line-height: 1.2 !important;
+}
+.ucn-banner p {
+    margin: 0 !important;
+    font-size: 13.5px !important;
+    color: #E2ECF7 !important;
+    font-weight: 400 !important;
+}
+.ucn-banner-tag {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   BOTONES TIPO PÍLDORA ECIEM (COMO EN EL PORTAL OFICIAL)
    ========================================================================== */
 div.stButton > button,
 div.stDownloadButton > button,
 div.stFormSubmitButton > button {
-    border-radius: 8px !important;
-    min-height: 42px !important;
-    height: 42px !important;
+    border-radius: 999px !important;
+    min-height: 40px !important;
+    height: 40px !important;
     font-weight: 600 !important;
-    font-size: 14px !important;
-    transition: all 0.15s ease !important;
+    font-size: 13.5px !important;
+    padding: 0 20px !important;
+    transition: all 0.16s ease !important;
     box-shadow: none !important;
     margin: 0 !important;
 }
 
+/* Botón primario (estado activo ECIEM / acción principal) */
 div.stButton > button[kind="primary"],
 div.stDownloadButton > button[kind="primary"],
 div.stFormSubmitButton > button[kind="primary"] {
-    background-color: #003A70 !important;
-    border: 1px solid #003A70 !important;
+    background-color: #4E73A3 !important;
+    border: 1px solid #4E73A3 !important;
     color: #FFFFFF !important;
 }
 div.stButton > button[kind="primary"]:hover,
 div.stDownloadButton > button[kind="primary"]:hover,
 div.stFormSubmitButton > button[kind="primary"]:hover {
-    background-color: #002D72 !important;
-    border-color: #002D72 !important;
+    background-color: #003A70 !important;
+    border-color: #003A70 !important;
+    color: #FFFFFF !important;
 }
 
+/* Botón secundario (píldora suave ECIEM #EEF3F8) */
 div.stButton > button[kind="secondary"],
 div.stDownloadButton > button[kind="secondary"],
 div.stFormSubmitButton > button[kind="secondary"] {
-    background-color: #FFFFFF !important;
-    border: 1px solid #CBD5E1 !important;
-    color: #003A70 !important;
+    background-color: #EEF3F8 !important;
+    border: 1px solid #DCE5F0 !important;
+    color: #1E293B !important;
 }
 div.stButton > button[kind="secondary"]:hover {
-    background-color: #EAF1F8 !important;
-    border-color: #003A70 !important;
+    background-color: #E1EAF4 !important;
+    border-color: #B8CBE0 !important;
+    color: #003A70 !important;
 }
 
 /* ==========================================================================
-   CONTRASTE NÍTIDO EN TODOS LOS INPUTS, SELECTS Y DATEPICKERS
+   TARJETAS BLANCAS SÓLIDAS (SIN BORDES DOBLES)
+   ========================================================================== */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 14px !important;
+    padding: 1.35rem 1.55rem !important;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* ==========================================================================
+   CONTRASTE NÍTIDO EN INPUTS, SELECTS Y DATEPICKERS
    ========================================================================== */
 .stTextInput > div > div,
 .stDateInput > div > div,
@@ -175,11 +273,10 @@ div[data-baseweb="input"] > div,
 div[data-baseweb="select"] > div,
 textarea {
     border: 1px solid #CBD5E1 !important;
-    border-radius: 8px !important;
-    min-height: 42px !important;
+    border-radius: 10px !important;
+    min-height: 41px !important;
 }
 
-/* Texto seleccionado y texto escrito: oscuro y 100% opaco */
 div[data-baseweb="input"] input,
 div[data-baseweb="select"] span,
 div[data-baseweb="select"] div[value],
@@ -190,11 +287,10 @@ textarea {
     color: #1E293B !important;
     -webkit-text-fill-color: #1E293B !important;
     opacity: 1 !important;
-    font-size: 14px !important;
+    font-size: 13.5px !important;
     font-weight: 500 !important;
 }
 
-/* Placeholders legibles (gris medio #64748B, nunca invisible) */
 div[data-baseweb="input"] input::placeholder,
 textarea::placeholder {
     color: #64748B !important;
@@ -209,7 +305,6 @@ div[data-baseweb="input"] svg {
     color: #475569 !important;
 }
 
-/* Menús desplegables (Selectbox / Datepicker popovers) */
 div[data-baseweb="popover"],
 div[data-baseweb="popover"] > div,
 ul[role="listbox"],
@@ -219,7 +314,7 @@ ul[role="listbox"] li {
 }
 ul[role="listbox"] li:hover,
 ul[role="listbox"] li[aria-selected="true"] {
-    background-color: #EAF1F8 !important;
+    background-color: #EEF3F8 !important;
     color: #003A70 !important;
     font-weight: 600 !important;
 }
@@ -227,27 +322,25 @@ ul[role="listbox"] li[aria-selected="true"] {
 div[data-baseweb="input"] > div:focus-within,
 div[data-baseweb="select"] > div:focus-within,
 textarea:focus {
-    border-color: #003A70 !important;
-    box-shadow: 0 0 0 1.5px #003A70 !important;
+    border-color: #4E73A3 !important;
+    box-shadow: 0 0 0 1.5px #4E73A3 !important;
 }
 
-/* Etiquetas de campos */
 .stTextInput label, .stSelectbox label, .stDateInput label,
 .stTextArea label, .stFileUploader label,
 .stTextInput label p, .stSelectbox label p, .stDateInput label p,
 .stTextArea label p, .stFileUploader label p {
-    color: #1E293B !important;
+    color: #334155 !important;
     font-weight: 600 !important;
-    font-size: 13.5px !important;
+    font-size: 13px !important;
     margin-bottom: 4px !important;
 }
 
-/* File uploader claro */
 [data-testid="stFileUploader"] section,
 [data-testid="stFileUploaderDropzone"] {
     background-color: #F8FAFC !important;
-    border: 1.5px dashed #94A3B8 !important;
-    border-radius: 10px !important;
+    border: 1.5px dashed #CBD5E1 !important;
+    border-radius: 12px !important;
     color: #1E293B !important;
 }
 [data-testid="stFileUploaderDropzone"] small,
@@ -259,229 +352,132 @@ textarea:focus {
     background-color: #FFFFFF !important;
     color: #003A70 !important;
     border: 1px solid #CBD5E1 !important;
+    border-radius: 999px !important;
 }
 
 /* ==========================================================================
-   ALINEACIÓN DE LOGOS Y BARRA SUPERIOR (CENTRADO VERTICAL PERFECTO)
+   TARJETAS KPI (ESTILO MODERNO ECIEM)
    ========================================================================== */
-.ucn-brand-group {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 14px;
-    min-height: 44px;
-    margin: 0;
-    padding: 0;
-}
-.ucn-logo-box {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 44px;
-}
-.ucn-brand-logo {
-    max-height: 42px;
-    width: auto;
-    object-fit: contain;
-    display: block;
-    margin: 0;
-}
-.ucn-brand-divider {
-    width: 1px;
-    height: 28px;
-    background: #CBD5E1;
-    flex-shrink: 0;
-}
-.ucn-brand-fallback {
-    font-weight: 800;
-    color: #003A70;
-    font-size: 15px;
-    line-height: 1.15;
-}
-.ucn-brand-fallback span {
-    display: block;
-    font-weight: 500;
-    font-size: 11px;
-    color: #526172;
-}
-.ucn-role-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 30px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #003A70;
-    background: #EAF1F8;
-    padding: 0 14px;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-.ucn-campus-tag {
-    display: inline-flex;
-    align-items: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: #003A70;
-}
-
-/* Banner de encabezado con franja dorada UCN */
-.ucn-banner {
-    background: linear-gradient(90deg, #002D72 0%, #004D99 100%);
-    border-left: 8px solid #E6B800;
-    border-radius: 10px;
-    padding: 16px 24px;
-    margin-top: 8px;
-    margin-bottom: 16px;
-    color: #FFFFFF;
-    box-shadow: 0 3px 10px rgba(0, 45, 114, 0.10);
-}
-.ucn-banner h1 {
-    margin: 0 0 3px 0 !important;
-    font-size: 26px !important;
-    font-weight: 700 !important;
-    color: #FFFFFF !important;
-    line-height: 1.2 !important;
-}
-.ucn-banner p {
-    margin: 0 !important;
-    font-size: 14px !important;
-    color: #EAF1F8 !important;
-    font-weight: 400 !important;
-}
-
-/* Encabezado de pasos numerados en formularios (1, 2, 3) */
-.ucn-step-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 2px 0 12px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #E2E8F0;
-}
-.ucn-step-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 999px;
-    background: #003A70;
-    color: #FFFFFF;
-    font-size: 12px;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-.ucn-step-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #003A70;
-}
-.ucn-step-sub {
-    font-size: 12.5px;
-    color: #64748B;
-    margin-left: auto;
-}
-
-/* Tarjetas KPI azules grandes del Dashboard */
 .ucn-kpi-card {
-    background: linear-gradient(135deg, #003A70 0%, #004D99 100%);
-    border: 2px solid #FFFFFF;
-    border-radius: 12px;
-    padding: 20px 18px;
-    text-align: center;
-    color: #FFFFFF;
-    box-shadow: 0 4px 14px rgba(0, 45, 114, 0.12);
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-top: 4px solid #4E73A3;
+    border-radius: 14px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
     margin-bottom: 14px;
 }
-.ucn-kpi-icon {
-    font-size: 20px;
-    color: #E6B800;
-    margin-bottom: 2px;
+.ucn-kpi-card.gold-accent {
+    border-top-color: #E6B800;
 }
-.ucn-kpi-value {
-    font-size: 36px;
-    font-weight: 800;
-    color: #E6B800;
-    line-height: 1.1;
-    margin: 2px 0 6px 0;
-}
-.ucn-kpi-label {
-    font-size: 15px;
+.ucn-kpi-info-title {
+    font-size: 13.5px;
     font-weight: 600;
-    color: #FFFFFF;
+    color: #475569;
     margin-bottom: 2px;
 }
-.ucn-kpi-sub {
-    font-size: 12px;
-    color: #D2E1F0;
-}
-
-/* Títulos y ayudas */
-.ucn-section-title {
-    font-size: 17px;
-    font-weight: 700;
-    color: #003A70;
-    margin: 16px 0 8px 0;
-}
-.ucn-helper {
+.ucn-kpi-info-sub {
     font-size: 12px;
     color: #64748B;
-    margin-top: -8px;
-    margin-bottom: 6px;
+}
+.ucn-kpi-number {
+    font-size: 34px;
+    font-weight: 800;
+    color: #003A70;
+    line-height: 1;
+    background: #EEF3F8;
+    padding: 10px 18px;
+    border-radius: 12px;
+}
+.ucn-kpi-card.gold-accent .ucn-kpi-number {
+    background: #FBF4E3;
+    color: #825F1A;
 }
 
-/* Tablas limpias estilo Figma */
+/* ==========================================================================
+   TABLAS MODERNAS SIN BORDES VERTICALES (ESTILO ECIEM)
+   ========================================================================== */
+.ucn-section-title {
+    font-size: 16.5px;
+    font-weight: 700;
+    color: #1E293B;
+    margin: 18px 0 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 .ucn-table-wrap {
     background: #FFFFFF;
-    border: 1px solid #D5E0EC;
-    border-radius: 10px;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
     overflow-x: auto;
-    margin-bottom: 12px;
-    box-shadow: 0 1px 4px rgba(0, 45, 114, 0.04);
+    margin-bottom: 14px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
 }
 table.ucn-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
-    color: #1E293B;
+    font-size: 13.5px;
+    color: #334155;
+    border: none;
 }
 table.ucn-table thead tr {
-    background-color: #EAF1F8;
-    border-bottom: 1px solid #D5E0EC;
+    background-color: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
 }
 table.ucn-table th {
     text-align: left;
-    padding: 11px 14px;
+    padding: 13px 18px;
     font-size: 12px;
     font-weight: 700;
-    color: #003A70;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #64748B;
     white-space: nowrap;
+    border: none !important;
 }
 table.ucn-table td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #EEF2F6;
+    padding: 14px 18px;
+    border-bottom: 1px solid #F1F5F9;
+    border-left: none !important;
+    border-right: none !important;
     vertical-align: middle;
 }
 table.ucn-table tbody tr:last-child td {
     border-bottom: none;
 }
+table.ucn-table tbody tr {
+    transition: background-color 0.14s ease;
+}
 table.ucn-table tbody tr:hover {
     background-color: #F8FAFC;
 }
 table.ucn-table tbody tr.ucn-row-selected {
-    background-color: #EAF1F8 !important;
+    background-color: #EEF3F8 !important;
+}
+.ucn-sol-id {
+    font-weight: 700;
+    color: #4E73A3;
+    font-size: 14px;
+}
+.ucn-file-link {
+    color: #B4691E;
+    font-weight: 500;
+    font-size: 13px;
 }
 
-/* Badges de estado exactos del Figma */
+/* Badges de estado suaves */
 .ucn-badge {
     display: inline-block;
-    padding: 4px 12px;
+    padding: 5px 14px;
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
     text-align: center;
-    min-width: 92px;
+    min-width: 94px;
     white-space: nowrap;
 }
 .ucn-badge-proceso {
@@ -497,43 +493,76 @@ table.ucn-table tbody tr.ucn-row-selected {
     color: #A73535;
 }
 
-/* Franjas informativas / alertas */
+/* Encabezado de pasos numerados en formularios (1, 2, 3) */
+.ucn-step-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #F1F5F9;
+}
+.ucn-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #4E73A3;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.ucn-step-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1E293B;
+}
+.ucn-step-sub {
+    font-size: 12.5px;
+    color: #64748B;
+    margin-left: auto;
+}
+
+/* Franjas de feedback */
 .ucn-strip-ok {
     background: #EAF5EE;
     border: 1px solid #CBE6D5;
     color: #256747;
-    border-radius: 8px;
-    padding: 10px 14px;
+    border-radius: 10px;
+    padding: 11px 16px;
     font-size: 13.5px;
     font-weight: 600;
-    margin: 6px 0 10px 0;
+    margin: 8px 0 12px 0;
 }
 .ucn-strip-err {
     background: #FCEEEE;
     border: 1px solid #F3CACA;
     color: #A73535;
-    border-radius: 8px;
-    padding: 10px 14px;
+    border-radius: 10px;
+    padding: 11px 16px;
     font-size: 13px;
     font-weight: 600;
-    margin: 6px 0 10px 0;
+    margin: 8px 0 12px 0;
 }
 .ucn-strip-warn {
     background: #FBF4E3;
     border: 1px solid #EFE0B8;
     color: #825F1A;
-    border-radius: 8px;
-    padding: 10px 14px;
+    border-radius: 10px;
+    padding: 11px 16px;
     font-size: 13px;
     font-weight: 500;
     margin: 8px 0 12px 0;
 }
 .ucn-strip-info {
-    background: #EAF1F8;
-    border: 1px solid #D3E2F2;
-    color: #003A70;
-    border-radius: 8px;
-    padding: 10px 14px;
+    background: #EEF3F8;
+    border: 1px solid #DCE5F0;
+    color: #334155;
+    border-radius: 10px;
+    padding: 11px 16px;
     font-size: 13px;
     font-weight: 500;
     margin: 8px 0 12px 0;
@@ -542,34 +571,34 @@ table.ucn-table tbody tr.ucn-row-selected {
 /* Cajas suaves de detalle */
 .ucn-soft-box {
     background: #F8FAFC;
-    border: 1px solid #D5E0EC;
-    border-radius: 10px;
-    padding: 12px 16px;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 13px 16px;
     margin: 0;
 }
 .ucn-soft-box-title {
     font-size: 15px;
     font-weight: 700;
-    color: #003A70;
+    color: #4E73A3;
     margin-bottom: 3px;
 }
 .ucn-soft-box-sub {
     font-size: 13px;
-    color: #526172;
-    line-height: 1.4;
+    color: #475569;
+    line-height: 1.45;
 }
 .ucn-summary-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 22px;
     background: #FFFFFF;
-    border: 1px solid #D5E0EC;
-    border-radius: 8px;
-    padding: 10px 16px;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 12px 18px;
     font-size: 13px;
     font-weight: 600;
     color: #003A70;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 </style>
 """
@@ -775,58 +804,110 @@ def parsear_fecha_flexible(valor):
     return None
 
 # ==============================================================================
-# COMPONENTES DE LAYOUT REUTILIZABLES (LOGO CENTRADO + TOPBAR + BANNER)
+# COMPONENTES DE LAYOUT REUTILIZABLES (ENCABEZADO LIMPIO + PÍLDORAS ECIEM)
 # ==============================================================================
 def brand_logos_html() -> str:
-    if LOGO_UCN_B64:
-        return f'<div class="ucn-logo-box"><img src="{LOGO_UCN_B64}" class="ucn-brand-logo" alt="Universidad Católica del Norte" /></div>'
-    return '<div class="ucn-brand-fallback">Universidad Católica del Norte<span>Facultad de Economía y Administración · Campus Guayacán</span></div>'
+    logo_img = (
+        f'<div class="ucn-logo-box"><img src="{LOGO_UCN_B64}" class="ucn-brand-logo" alt="Universidad Católica del Norte" /></div>'
+        if LOGO_UCN_B64
+        else '<div class="ucn-unit-title">Universidad Católica del Norte</div>'
+    )
+    return (
+        f"{logo_img}"
+        '<div class="ucn-brand-divider"></div>'
+        '<div>'
+        '<div class="ucn-unit-title">Escuela de Ciencias Empresariales</div>'
+        '<div class="ucn-unit-sub">Campus Guayacán · Coquimbo</div>'
+        '</div>'
+    )
 
 def render_topbar(boton_izq_texto="Inicio"):
     user = st.session_state.usuario
-    rol_corto = "Secretaría" if user["rol"] == "Secretaría" else "Jefatura"
+    rol_corto = "Secretaría" if user["rol"] == "Secretaría" else "Jefatura de Carrera"
 
-    with st.container(border=True):
-        col_brand, col_nav1, col_nav2 = st.columns([6.8, 1.4, 1.8], vertical_alignment="center")
-        with col_brand:
-            st.markdown(
-                f"""
-                <div id="ucn-topbar-marker" style="display:none;"></div>
+    col_brand, col_nav1, col_nav2 = st.columns([7.2, 1.3, 1.5], vertical_alignment="center")
+    with col_brand:
+        st.markdown(
+            f"""
+            <div class="ucn-header-bar">
                 <div class="ucn-brand-group">
                     {brand_logos_html()}
-                    <div class="ucn-brand-divider"></div>
-                    <span class="ucn-role-pill">{esc(rol_corto)}</span>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with col_nav1:
-            if st.button(boton_izq_texto, key=f"nav_top_{boton_izq_texto}", use_container_width=True):
-                st.session_state.ultima_solicitud_guardada = None
-                st.session_state.ultima_carga_confirmada = None
-                st.session_state.reporte_listo = False
-                st.session_state.pagina = "Inicio"
-                st.rerun()
-        with col_nav2:
-            if st.button("Cerrar sesión", key="nav_top_logout", use_container_width=True):
-                st.session_state.usuario = None
-                st.session_state.detalles_pendientes = []
-                st.session_state.ultima_solicitud_guardada = None
-                st.session_state.ultima_carga_confirmada = None
-                st.session_state.reporte_listo = False
-                st.session_state.pagina = "Inicio"
-                st.rerun()
+                <span class="ucn-role-pill">{esc(rol_corto)}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col_nav1:
+        if st.button(boton_izq_texto, key=f"nav_top_{boton_izq_texto}", type="secondary", use_container_width=True):
+            st.session_state.ultima_solicitud_guardada = None
+            st.session_state.ultima_carga_confirmada = None
+            st.session_state.reporte_listo = False
+            st.session_state.pagina = "Inicio"
+            st.rerun()
+    with col_nav2:
+        if st.button("Cerrar sesión", key="nav_top_logout", type="secondary", use_container_width=True):
+            st.session_state.usuario = None
+            st.session_state.detalles_pendientes = []
+            st.session_state.ultima_solicitud_guardada = None
+            st.session_state.ultima_carga_confirmada = None
+            st.session_state.reporte_listo = False
+            st.session_state.pagina = "Inicio"
+            st.rerun()
 
 def render_banner(titulo: str, subtitulo: str):
     st.markdown(
         f"""
         <div class="ucn-banner">
-            <h1>{esc(titulo)}</h1>
-            <p>{esc(subtitulo)}</p>
+            <div>
+                <h1>{esc(titulo)}</h1>
+                <p>{esc(subtitulo)}</p>
+            </div>
+            <span class="ucn-banner-tag">Gestión de Inasistencias</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+def render_eciem_nav_pills(total_sol: int = 0, en_proc: int = 0):
+    """Barra de navegación tipo píldora inspirada en el portal oficial ECIEM."""
+    es_secretaria = st.session_state.usuario["rol"] == "Secretaría"
+    pag = st.session_state.pagina
+
+    if es_secretaria:
+        c1, c2, c3, c4, c5 = st.columns([1.15, 1.75, 2.05, 1.65, 1.70], gap="small")
+        if c1.button("🏠 Inicio", type="primary" if pag == "Inicio" else "secondary", use_container_width=True, key="pill_ini"):
+            st.session_state.pagina = "Inicio"
+            st.rerun()
+        if c2.button("📝 Registrar solicitud", type="primary" if pag == "Registrar solicitud" else "secondary", use_container_width=True, key="pill_reg"):
+            st.session_state.ultima_solicitud_guardada = None
+            st.session_state.pagina = "Registrar solicitud"
+            st.rerun()
+        if c3.button(f"🔍 Consultar ({total_sol})", type="primary" if pag == "Consultar solicitudes" else "secondary", use_container_width=True, key="pill_con"):
+            st.session_state.pagina = "Consultar solicitudes"
+            st.rerun()
+        if c4.button("📤 Cargar planilla", type="primary" if pag == "Cargar planilla" else "secondary", use_container_width=True, key="pill_car"):
+            st.session_state.ultima_carga_confirmada = None
+            st.session_state.pagina = "Cargar planilla"
+            st.rerun()
+        if c5.button("📊 Generar reporte", type="primary" if pag == "Generar reporte" else "secondary", use_container_width=True, key="pill_rep"):
+            st.session_state.reporte_listo = False
+            st.session_state.pagina = "Generar reporte"
+            st.rerun()
+    else:
+        c1, c2, c3, _ = st.columns([1.2, 2.2, 1.8, 4.8], gap="small")
+        if c1.button("🏠 Inicio", type="primary" if pag == "Inicio" else "secondary", use_container_width=True, key="pill_j_ini"):
+            st.session_state.pagina = "Inicio"
+            st.rerun()
+        if c2.button(f"⚖️ Consultar y revisar ({en_proc})", type="primary" if pag == "Consultar y revisar" else "secondary", use_container_width=True, key="pill_j_rev"):
+            st.session_state.pagina = "Consultar y revisar"
+            st.rerun()
+        if c3.button("📊 Generar reporte", type="primary" if pag == "Generar reporte" else "secondary", use_container_width=True, key="pill_j_rep"):
+            st.session_state.reporte_listo = False
+            st.session_state.pagina = "Generar reporte"
+            st.rerun()
+
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
 # ==============================================================================
 # ESTADO DE SESIÓN
@@ -849,7 +930,7 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 # ==============================================================================
-# PANTALLA 01: INICIAR SESIÓN (TARJETA BLANCA SÓLIDA + SIN ESPACIOS SOBRANTES)
+# PANTALLA 01: INICIAR SESIÓN
 # ==============================================================================
 def render_login():
     fondo_css = (
@@ -876,7 +957,7 @@ def render_login():
         }}
         .ucn-login-fullbar {{
             background: #FFFFFF;
-            border-bottom: 1px solid #D5E0EC;
+            border-bottom: 1px solid #E2E8F0;
             padding: 12px 48px;
             display: flex;
             align-items: center;
@@ -886,7 +967,7 @@ def render_login():
             margin-bottom: 36px;
         }}
         .ucn-login-left-col {{
-            min-height: 460px;
+            min-height: 450px;
             border-right: 4px solid #E6B800;
             padding-right: 36px;
             padding-left: 16px;
@@ -942,7 +1023,7 @@ def render_login():
                 <div class="ucn-hero-kicker">GESTIÓN ACADÉMICA</div>
                 <div class="ucn-hero-h1">Gestión de<br>inasistencias</div>
                 <div class="ucn-hero-p">Recepción, revisión y seguimiento de solicitudes.</div>
-                <div class="ucn-hero-caption">Campus Guayacán · Coquimbo</div>
+                <div class="ucn-hero-caption">Escuela de Ciencias Empresariales · Coquimbo</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -952,9 +1033,8 @@ def render_login():
         with st.container(border=True):
             st.markdown(
                 """
-                <div id="ucn-card-marker" style="display:none;"></div>
                 <div style="font-size:26px;font-weight:700;color:#1E293B;margin-bottom:4px;">Iniciar sesión</div>
-                <div style="font-size:14px;color:#526172;margin-bottom:18px;">Selecciona tu perfil para continuar.</div>
+                <div style="font-size:14px;color:#64748B;margin-bottom:18px;">Selecciona tu perfil para continuar.</div>
                 """,
                 unsafe_allow_html=True,
             )
@@ -990,11 +1070,11 @@ def render_login():
 
             with st.form("form_login_ucn", border=False):
                 correo = st.text_input(
-                    "01 · Correo institucional",
+                    "Correo institucional",
                     placeholder=placeholder_correo,
                 )
                 contrasena = st.text_input(
-                    "02 · Contraseña",
+                    "Contraseña",
                     type="password",
                     placeholder="Ingresa tu contraseña",
                 )
@@ -1034,14 +1114,6 @@ def render_inicio():
     user = st.session_state.usuario
     es_secretaria = user["rol"] == "Secretaría"
 
-    render_topbar("Inicio")
-    render_banner(
-        "Inicio",
-        "Recibe solicitudes y organiza los antecedentes."
-        if es_secretaria
-        else "Consulta antecedentes y registra una decisión.",
-    )
-
     df = cargar_hechos_detallados()
     _, periodos, _, _ = cargar_catalogos()
     periodo_actual = periodos[0]["nombre_periodo"] if periodos else "2026-2"
@@ -1053,15 +1125,25 @@ def render_inicio():
         else 0
     )
 
+    render_topbar("Inicio")
+    render_banner(
+        "Inicio",
+        "Recibe solicitudes y organiza los antecedentes."
+        if es_secretaria
+        else "Consulta antecedentes y registra una decisión.",
+    )
+    render_eciem_nav_pills(total_solicitudes, en_proceso)
+
     k1, k2 = st.columns(2, gap="medium")
     with k1:
         st.markdown(
             f"""
             <div class="ucn-kpi-card">
-                <div class="ucn-kpi-icon">📋</div>
-                <div class="ucn-kpi-value">{total_solicitudes}</div>
-                <div class="ucn-kpi-label">Solicitudes del período</div>
-                <div class="ucn-kpi-sub">{esc(periodo_actual)}</div>
+                <div>
+                    <div class="ucn-kpi-info-title">Solicitudes del período</div>
+                    <div class="ucn-kpi-info-sub">Período académico {esc(periodo_actual)}</div>
+                </div>
+                <div class="ucn-kpi-number">{total_solicitudes}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1069,47 +1151,21 @@ def render_inicio():
     with k2:
         st.markdown(
             f"""
-            <div class="ucn-kpi-card">
-                <div class="ucn-kpi-icon">🕒</div>
-                <div class="ucn-kpi-value">{en_proceso}</div>
-                <div class="ucn-kpi-label">En proceso</div>
-                <div class="ucn-kpi-sub">Pendientes de completar o revisar</div>
+            <div class="ucn-kpi-card gold-accent">
+                <div>
+                    <div class="ucn-kpi-info-title">Solicitudes en proceso</div>
+                    <div class="ucn-kpi-info-sub">Pendientes de revisión o antecedentes</div>
+                </div>
+                <div class="ucn-kpi-number">{en_proceso}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    if es_secretaria:
-        b1, b2, b3, b4 = st.columns(4, gap="small")
-        if b1.button("Registrar solicitud", type="primary", use_container_width=True):
-            st.session_state.ultima_solicitud_guardada = None
-            st.session_state.pagina = "Registrar solicitud"
-            st.rerun()
-        if b2.button("Consultar solicitudes", type="secondary", use_container_width=True):
-            st.session_state.pagina = "Consultar solicitudes"
-            st.rerun()
-        if b3.button("Cargar planilla", type="secondary", use_container_width=True):
-            st.session_state.ultima_carga_confirmada = None
-            st.session_state.pagina = "Cargar planilla"
-            st.rerun()
-        if b4.button("Generar reporte", type="secondary", use_container_width=True):
-            st.session_state.reporte_listo = False
-            st.session_state.pagina = "Generar reporte"
-            st.rerun()
-    else:
-        b1, b2, _ = st.columns([2.3, 2.0, 5.7], gap="small")
-        if b1.button("Consultar y revisar", type="primary", use_container_width=True):
-            st.session_state.pagina = "Consultar y revisar"
-            st.rerun()
-        if b2.button("Generar reporte", type="secondary", use_container_width=True):
-            st.session_state.reporte_listo = False
-            st.session_state.pagina = "Generar reporte"
-            st.rerun()
-
     st.markdown('<div class="ucn-section-title">Solicitudes recientes</div>', unsafe_allow_html=True)
 
     if df.empty:
-        st.markdown('<div class="ucn-strip-info">Aún no existen solicitudes registradas en Supabase.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ucn-strip-info">Aún no existen solicitudes registradas en el sistema.</div>', unsafe_allow_html=True)
         return
 
     resumen = (
@@ -1130,12 +1186,12 @@ def render_inicio():
         respaldo_txt = r["Respaldo"] or "—"
         filas_html.append(
             f"<tr>"
-            f"<td><strong>{esc(r['numero_solicitud'])}</strong></td>"
-            f"<td>{esc(r['Estudiante'])}</td>"
+            f"<td><span class='ucn-sol-id'>#{esc(r['numero_solicitud'])}</span></td>"
+            f"<td><strong>{esc(r['Estudiante'])}</strong></td>"
             f"<td>{esc(r['Carrera'])}</td>"
-            f"<td>{esc(fecha_txt)}</td>"
+            f"<td>📅 {esc(fecha_txt)}</td>"
             f"<td>{badge_estado_html(r['Estado'])}</td>"
-            f"<td>{esc(respaldo_txt)}</td>"
+            f"<td><span class='ucn-file-link'>📄 {esc(respaldo_txt)}</span></td>"
             f"</tr>"
         )
 
@@ -1163,20 +1219,25 @@ def render_inicio():
     )
 
 # ==============================================================================
-# PANTALLA 03: REGISTRAR SOLICITUD (ORGANIZADA EN 3 PASOS LIMPIOS)
+# PANTALLA 03: REGISTRAR SOLICITUD (3 PASOS LIMPIOS)
 # ==============================================================================
 def render_registrar_solicitud():
     if st.session_state.usuario["rol"] != "Secretaría":
         st.session_state.pagina = "Inicio"
         st.rerun()
 
+    df_all = cargar_hechos_detallados()
+    total_sol = df_all["numero_solicitud"].nunique() if not df_all.empty else 0
+    en_proc = df_all[df_all["nombre_estado"] == "En proceso"]["numero_solicitud"].nunique() if not df_all.empty else 0
+
     render_topbar("Inicio")
 
     if st.session_state.ultima_solicitud_guardada is not None:
         info = st.session_state.ultima_solicitud_guardada
         render_banner("Solicitud registrada", "Los antecedentes quedan disponibles para Jefatura.")
+        render_eciem_nav_pills(total_sol, en_proc)
         st.markdown(
-            f'<div class="ucn-strip-ok">Solicitud {esc(info["numero_solicitud"])} registrada correctamente.</div>',
+            f'<div class="ucn-strip-ok">Solicitud #{esc(info["numero_solicitud"])} registrada correctamente.</div>',
             unsafe_allow_html=True,
         )
 
@@ -1192,10 +1253,9 @@ def render_registrar_solicitud():
         with st.container(border=True):
             st.markdown(
                 f"""
-                <div id="ucn-card-marker" style="display:none;"></div>
                 <div style="margin-bottom:10px;">{badge_estado_html('En proceso')}</div>
-                <div style="font-size:20px;font-weight:700;color:#003A70;margin-bottom:4px;">{esc(info['nombre_estudiante'])}</div>
-                <div style="font-size:13.5px;color:#526172;margin-bottom:14px;">
+                <div style="font-size:19px;font-weight:700;color:#1E293B;margin-bottom:4px;">{esc(info['nombre_estudiante'])}</div>
+                <div style="font-size:13.5px;color:#64748B;margin-bottom:14px;">
                     Entrega y recepción: {esc(info['fecha_entrega'].strftime('%d/%m/%Y'))} ·
                     {esc(info['nombre_archivo'])} · {len(info['detalles'])} detalle(s)
                 </div>
@@ -1224,6 +1284,7 @@ def render_registrar_solicitud():
         "Registrar solicitud",
         "Completa los 3 pasos para ingresar la justificación al sistema.",
     )
+    render_eciem_nav_pills(total_sol, en_proc)
 
     estados, periodos, asignaturas, estudiantes = cargar_catalogos()
     mapa_estudiantes = {normalizar_rut(e["rut"]): e for e in estudiantes}
@@ -1231,22 +1292,19 @@ def render_registrar_solicitud():
 
     if not periodos or not asignaturas or estado_en_proceso is None:
         st.markdown(
-            '<div class="ucn-strip-err">Faltan datos maestros en Supabase (dim_periodo, dim_asignatura o dim_estado).</div>',
+            '<div class="ucn-strip-err">Faltan datos maestros en la base de datos.</div>',
             unsafe_allow_html=True,
         )
         return
 
-    # --------------------------------------------------------------------------
     # PASO 1: IDENTIFICACIÓN DEL ESTUDIANTE
-    # --------------------------------------------------------------------------
     with st.container(border=True):
         st.markdown(
             """
-            <div id="ucn-card-marker" style="display:none;"></div>
             <div class="ucn-step-header">
                 <span class="ucn-step-num">1</span>
                 <span class="ucn-step-title">Identificación del estudiante</span>
-                <span class="ucn-step-sub">Valida el RUT registrado en el sistema</span>
+                <span class="ucn-step-sub">Valida el RUT registrado</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1264,7 +1322,7 @@ def render_registrar_solicitud():
                     rut_norm_act = normalizar_rut(rut_input)
                     estudiante_actual = mapa_estudiantes.get(rut_norm_act)
                     if not estudiante_actual:
-                        st.markdown('<div class="ucn-strip-err">Estudiante no registrado en base de datos.</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="ucn-strip-err">Estudiante no registrado.</div>', unsafe_allow_html=True)
                     else:
                         if st.session_state.ultimo_rut_autodetectado != rut_norm_act:
                             if estudiante_actual["nombre_carrera"] in CARRERAS_OFICIALES:
@@ -1298,17 +1356,14 @@ def render_registrar_solicitud():
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # --------------------------------------------------------------------------
-    # PASO 2: ASIGNATURAS Y PERÍODOS DE INASISTENCIA
-    # --------------------------------------------------------------------------
+    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA
     with st.container(border=True):
         st.markdown(
             """
-            <div id="ucn-card-marker" style="display:none;"></div>
             <div class="ucn-step-header">
                 <span class="ucn-step-num">2</span>
                 <span class="ucn-step-title">Asignaturas y fechas de inasistencia</span>
-                <span class="ucn-step-sub">Filtra por carrera · Paralelo de ingreso libre</span>
+                <span class="ucn-step-sub">Filtra por carrera · Paralelo libre</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1403,17 +1458,14 @@ def render_registrar_solicitud():
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # --------------------------------------------------------------------------
     # PASO 3: RECEPCIÓN Y RESPALDO DOCUMENTAL
-    # --------------------------------------------------------------------------
     with st.container(border=True):
         st.markdown(
             """
-            <div id="ucn-card-marker" style="display:none;"></div>
             <div class="ucn-step-header">
                 <span class="ucn-step-num">3</span>
                 <span class="ucn-step-title">Recepción y respaldo documental</span>
-                <span class="ucn-step-sub">Verificación administrativa de Secretaría</span>
+                <span class="ucn-step-sub">Antecedentes adjuntos</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1436,13 +1488,10 @@ def render_registrar_solicitud():
         )
         if archivo_respaldo is not None:
             st.markdown(
-                f'<div class="ucn-strip-ok">✓ Respaldo adjuntado ({esc(archivo_respaldo.name)}) y verificado por Secretaría.</div>',
+                f'<div class="ucn-strip-ok">✓ Respaldo adjuntado ({esc(archivo_respaldo.name)}).</div>',
                 unsafe_allow_html=True,
             )
 
-    # --------------------------------------------------------------------------
-    # ACCIONES FINALES
-    # --------------------------------------------------------------------------
     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
     bt1, bt2, _ = st.columns([2.2, 1.6, 6.2], gap="small")
     guardar_clic = bt1.button("Guardar solicitud", type="primary", use_container_width=True)
@@ -1511,7 +1560,7 @@ def render_registrar_solicitud():
                     "cantidad_documentos_adjuntos": 1,
                     "tipo_documento": tipo_doc.strip(),
                     "nombre_archivo": archivo_respaldo.name,
-                    "observacion_revision": f"Solicitud recibida por Secretaría ({fecha_recepcion.strftime('%d/%m/%Y')}).",
+                    "observacion_revision": f"Solicitud recibida ({fecha_recepcion.strftime('%d/%m/%Y')}).",
                 }
             )
 
@@ -1532,21 +1581,25 @@ def render_registrar_solicitud():
 def render_consultar_revisar():
     es_jefatura = st.session_state.usuario["rol"] != "Secretaría"
 
+    df = cargar_hechos_detallados()
+    total_sol = df["numero_solicitud"].nunique() if not df.empty else 0
+    en_proc = df[df["nombre_estado"] == "En proceso"]["numero_solicitud"].nunique() if not df.empty else 0
+
     render_topbar("Inicio")
     render_banner(
         "Consultar y revisar" if es_jefatura else "Consultar solicitudes",
-        "Revisa el respaldo y deja registro de la decisión."
+        "Revisa los antecedentes y registra una resolución."
         if es_jefatura
-        else "Busca por estudiante o estado actual.",
+        else "Filtra por estudiante o estado de la solicitud.",
     )
+    render_eciem_nav_pills(total_sol, en_proc)
 
-    df = cargar_hechos_detallados()
     estados, _, _, _ = cargar_catalogos()
     mapa_estados = {e["nombre_estado"]: e["id_estado"] for e in estados}
     lista_estados = ["Todos"] + list(mapa_estados.keys())
 
     if not es_jefatura:
-        f1, f2, f3 = st.columns([2.2, 2.2, 1.1], vertical_alignment="bottom")
+        f1, f2, f3 = st.columns([2.4, 2.0, 1.1], vertical_alignment="bottom")
         with f1:
             rut_q = st.text_input(
                 "RUT o nombre del estudiante",
@@ -1580,10 +1633,9 @@ def render_consultar_revisar():
             with st.container(border=True):
                 st.markdown(
                     """
-                    <div id="ucn-card-marker" style="display:none;"></div>
-                    <div style="font-size:17px;font-weight:700;color:#003A70;margin-bottom:4px;">Sin resultados</div>
-                    <div style="font-size:13.5px;color:#526172;margin-bottom:12px;">
-                        Revisa el RUT o limpia los filtros para volver al listado.
+                    <div style="font-size:17px;font-weight:700;color:#1E293B;margin-bottom:4px;">Sin resultados</div>
+                    <div style="font-size:13.5px;color:#64748B;margin-bottom:12px;">
+                        No se encontraron solicitudes con los filtros aplicados.
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -1600,9 +1652,9 @@ def render_consultar_revisar():
             rango = formatear_rango_inasistencia(r["fecha_inicio_ausencia"], r["fecha_termino_ausencia"])
             filas_html.append(
                 f"<tr>"
-                f"<td><strong>{esc(r['numero_solicitud'])}</strong></td>"
-                f"<td>{esc(r['nombre_estudiante'])}</td>"
-                f"<td>{esc(f_ent)}</td>"
+                f"<td><span class='ucn-sol-id'>#{esc(r['numero_solicitud'])}</span></td>"
+                f"<td><strong>{esc(r['nombre_estudiante'])}</strong></td>"
+                f"<td>📅 {esc(f_ent)}</td>"
                 f"<td>{esc(r['nombre_asignatura'])}</td>"
                 f"<td><strong>{esc(r['paralelo'])}</strong></td>"
                 f"<td>{esc(rango)}</td>"
@@ -1628,7 +1680,6 @@ def render_consultar_revisar():
                     <tbody>{''.join(filas_html)}</tbody>
                 </table>
             </div>
-            <div class="ucn-strip-info">La revisión y la decisión corresponden a Jefatura.</div>
             """,
             unsafe_allow_html=True,
         )
@@ -1671,9 +1722,8 @@ def render_consultar_revisar():
         if df_fil.empty:
             with st.container(border=True):
                 st.markdown(
-                    '<div id="ucn-card-marker" style="display:none;"></div>'
-                    '<div style="font-size:16px;font-weight:700;color:#003A70;">Sin resultados</div>'
-                    '<div style="font-size:13px;color:#526172;margin:4px 0 10px 0;">Revisa el RUT o limpia los filtros.</div>',
+                    '<div style="font-size:16px;font-weight:700;color:#1E293B;">Sin resultados</div>'
+                    '<div style="font-size:13px;color:#64748B;margin:4px 0 10px 0;">No se encontraron coincidencias.</div>',
                     unsafe_allow_html=True,
                 )
                 if st.button("Limpiar filtros", type="secondary"):
@@ -1696,7 +1746,7 @@ def render_consultar_revisar():
         sol_sel = st.selectbox(
             "Solicitud a revisar",
             opciones_sol,
-            format_func=lambda s: f"Solicitud {s} — {resumen_sol[resumen_sol['numero_solicitud'] == s]['Estudiante'].iloc[0]}",
+            format_func=lambda s: f"Solicitud #{s} — {resumen_sol[resumen_sol['numero_solicitud'] == s]['Estudiante'].iloc[0]}",
         )
 
         filas_html = []
@@ -1705,9 +1755,9 @@ def render_consultar_revisar():
             row_cls = ' class="ucn-row-selected"' if r["numero_solicitud"] == sol_sel else ""
             filas_html.append(
                 f"<tr{row_cls}>"
-                f"<td><strong>{esc(r['numero_solicitud'])}</strong></td>"
-                f"<td>{esc(r['Estudiante'])}</td>"
-                f"<td>{esc(f_ent)}</td>"
+                f"<td><span class='ucn-sol-id'>#{esc(r['numero_solicitud'])}</span></td>"
+                f"<td><strong>{esc(r['Estudiante'])}</strong></td>"
+                f"<td>📅 {esc(f_ent)}</td>"
                 f"<td>{badge_estado_html(r['Estado'])}</td>"
                 f"</tr>"
             )
@@ -1741,14 +1791,13 @@ def render_consultar_revisar():
         with st.container(border=True):
             st.markdown(
                 f"""
-                <div id="ucn-card-marker" style="display:none;"></div>
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <div style="font-size:21px;font-weight:700;color:#003A70;">Solicitud {esc(sol_sel)}</div>
+                    <div style="font-size:20px;font-weight:700;color:#4E73A3;">Solicitud #{esc(sol_sel)}</div>
                     <div>{badge_estado_html(primera['nombre_estado'])}</div>
                 </div>
                 <div style="font-size:14px;color:#1E293B;margin-bottom:8px;">
                     <strong>{esc(primera['nombre_estudiante'])}</strong> · {esc(primera['rut_estudiante'])}<br>
-                    <span style="font-size:12.5px;color:#526172;">{esc(primera['nombre_carrera'])}</span>
+                    <span style="font-size:12.5px;color:#64748B;">{esc(primera['nombre_carrera'])}</span>
                 </div>
                 <div style="font-size:13px;color:#334155;margin-bottom:12px;">
                     {detalles_txt}
@@ -1758,7 +1807,7 @@ def render_consultar_revisar():
                         📄 {esc(primera['nombre_archivo'] or 'Sin archivo')} · {esc(primera['tipo_documento'] or 'Certificado')}
                     </div>
                     <div class="ucn-soft-box-sub">
-                        Recibido el {esc(f_ing_txt)} · Revisión del contenido a cargo de Jefatura.
+                        Recibido el {esc(f_ing_txt)}
                     </div>
                 </div>
                 """,
@@ -1773,7 +1822,7 @@ def render_consultar_revisar():
                 key=f"obs_rev_{sol_sel}",
             )
 
-            b1, b2, b3 = st.columns([1.0, 1.0, 1.45], gap="small")
+            b1, b2, b3 = st.columns([1.0, 1.0, 1.55], gap="small")
             accion = None
             if b1.button("Aceptar", type="primary", use_container_width=True, key=f"ac_{sol_sel}"):
                 accion = "Aceptado"
@@ -1811,11 +1860,11 @@ def render_consultar_revisar():
 
             st.markdown(
                 f"""
-                <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;">
-                    <div style="font-size:12.5px;font-weight:700;color:#003A70;margin-bottom:4px;">
-                        Historial de la solicitud {esc(sol_sel)}
+                <div style="margin-top:12px;padding-top:10px;border-top:1px solid #F1F5F9;">
+                    <div style="font-size:12.5px;font-weight:700;color:#4E73A3;margin-bottom:4px;">
+                        Historial de la solicitud #{esc(sol_sel)}
                     </div>
-                    <div style="font-size:12px;color:#526172;line-height:1.45;">
+                    <div style="font-size:12px;color:#64748B;line-height:1.45;">
                         <strong>{esc(f_res_txt)}</strong> · {esc(primera['nombre_funcionario'])} ({esc(primera['rol_funcionario'])}) ·
                         <strong>{esc(primera['nombre_estado'])}</strong><br>
                         {esc(primera['observacion_revision'] or 'Solicitud recibida.')}
@@ -1833,11 +1882,16 @@ def render_cargar_planilla():
         st.session_state.pagina = "Inicio"
         st.rerun()
 
+    df_all = cargar_hechos_detallados()
+    total_sol = df_all["numero_solicitud"].nunique() if not df_all.empty else 0
+    en_proc = df_all[df_all["nombre_estado"] == "En proceso"]["numero_solicitud"].nunique() if not df_all.empty else 0
+
     render_topbar("Inicio")
 
     if st.session_state.ultima_carga_confirmada is not None:
         res = st.session_state.ultima_carga_confirmada
         render_banner("Carga confirmada", "Resultado de la incorporación desde planilla.")
+        render_eciem_nav_pills(total_sol, en_proc)
         st.markdown(
             f'<div class="ucn-strip-ok">{res["validas"]} registro(s) cargado(s). {res["errores"]} fila(s) omitida(s) por error.</div>',
             unsafe_allow_html=True,
@@ -1845,10 +1899,9 @@ def render_cargar_planilla():
         with st.container(border=True):
             st.markdown(
                 f"""
-                <div id="ucn-card-marker" style="display:none;"></div>
-                <div style="font-size:19px;font-weight:700;color:#003A70;margin-bottom:6px;">{esc(res['archivo'])}</div>
+                <div style="font-size:18px;font-weight:700;color:#4E73A3;margin-bottom:6px;">📄 {esc(res['archivo'])}</div>
                 <div style="font-size:14px;color:#334155;line-height:1.6;">
-                    Las filas válidas quedaron incorporadas en <strong>Supabase</strong> (omitiendo Mail y Diagnóstico por privacidad).<br>
+                    Las filas válidas quedaron incorporadas correctamente en el sistema.<br>
                     {f"Corrige las {res['errores']} fila(s) con observaciones antes de volver a cargarlas." if res["errores"] > 0 else "No se detectaron errores en la planilla."}
                 </div>
                 """,
@@ -1865,28 +1918,21 @@ def render_cargar_planilla():
             st.rerun()
         return
 
-    render_banner("Cargar planilla", "Vista previa y validación antes de incorporar los registros a Supabase.")
+    render_banner("Cargar planilla", "Vista previa y validación antes de incorporar los registros.")
+    render_eciem_nav_pills(total_sol, en_proc)
 
     estados, periodos, asignaturas, estudiantes = cargar_catalogos()
     periodo_opciones = {p["nombre_periodo"]: p["id_periodo"] for p in periodos}
 
     with st.container(border=True):
-        st.markdown('<div id="ucn-card-marker" style="display:none;"></div>', unsafe_allow_html=True)
         c1, c2 = st.columns([2.2, 1.0], gap="large")
         with c1:
             archivo = st.file_uploader(
-                "Archivo de entrada (.csv o .xlsx — formato Entrada Ejemplo)",
+                "Archivo de entrada (.csv o .xlsx)",
                 type=["csv", "xlsx"],
             )
         with c2:
             periodo_sel = st.selectbox("Período académico", list(periodo_opciones.keys()))
-
-        st.markdown(
-            '<div class="ucn-strip-info" style="margin-bottom:0;">'
-            'Política de gobernanza: las columnas <strong>Mail</strong> y <strong>Diagnostico</strong> '
-            'se omiten automáticamente para resguardar privacidad médica y evitar redundancia.</div>',
-            unsafe_allow_html=True,
-        )
 
     if not archivo:
         return
@@ -1965,14 +2011,14 @@ def render_cargar_planilla():
         if not rut_raw or not validar_rut_chileno(rut_raw):
             errores_fila.append("RUT inválido")
         elif est_obj is None:
-            errores_fila.append(f"RUT {rut_norm} no existe en dim_estudiante")
+            errores_fila.append(f"RUT {rut_norm} no registrado")
 
         asig_raw = "" if pd.isna(row["Asignatura"]) else str(row["Asignatura"]).strip()
         par_raw = "" if ("Paralelo" not in df_raw.columns or pd.isna(row["Paralelo"])) else str(row["Paralelo"]).strip()
         carrera_est = est_obj["nombre_carrera"] if est_obj else ""
         asig_obj, par_final = buscar_asignatura_y_paralelo(asig_raw, carrera_est, par_raw)
         if asig_obj is None:
-            errores_fila.append(f"Asignatura '{asig_raw}' inexistente en malla")
+            errores_fila.append(f"Asignatura '{asig_raw}' inexistente")
 
         f_entrega = parsear_fecha_flexible(row["Fecha Entrega"])
         f_ini = parsear_fecha_flexible(row["Fecha inicio"])
@@ -1995,7 +2041,7 @@ def render_cargar_planilla():
         if not errores_fila:
             clave_u = (est_obj["rut"], f_entrega.isoformat(), asig_obj["id_paralelo"], par_final)
             if clave_u in claves_vistas:
-                errores_fila.append("Fila duplicada en el archivo")
+                errores_fila.append("Fila duplicada")
             else:
                 claves_vistas.add(clave_u)
 
@@ -2018,7 +2064,7 @@ def render_cargar_planilla():
             )
 
     filas_html = "".join(
-        f"<tr><td>{esc(f[0])}</td><td>{esc(f[1])}</td><td>{esc(f[2])}</td>"
+        f"<tr><td>{esc(f[0])}</td><td>{esc(f[1])}</td><td><strong>{esc(f[2])}</strong></td>"
         f"<td>{esc(f[3])}</td><td><strong>{esc(f[4])}</strong></td><td>{esc(f[5])}</td>"
         f"<td>{esc(f[6])}</td><td>{badge_validacion_html(f[7])}</td></tr>"
         for f in vista_previa
@@ -2081,7 +2127,7 @@ def render_cargar_planilla():
                     "cantidad_documentos_adjuntos": 1,
                     "tipo_documento": "Carga masiva",
                     "nombre_archivo": archivo.name,
-                    "observacion_revision": "Importado desde planilla operativa.",
+                    "observacion_revision": "Importado desde planilla.",
                 }
             )
 
@@ -2101,9 +2147,12 @@ def render_cargar_planilla():
 # PANTALLA 06: GENERAR REPORTE / REPORTE LISTO
 # ==============================================================================
 def render_generar_reporte():
+    df = cargar_hechos_detallados()
+    total_sol = df["numero_solicitud"].nunique() if not df.empty else 0
+    en_proc = df[df["nombre_estado"] == "En proceso"]["numero_solicitud"].nunique() if not df.empty else 0
+
     render_topbar("Volver")
 
-    df = cargar_hechos_detallados()
     estados, periodos, _, _ = cargar_catalogos()
     nombres_periodos = [p["nombre_periodo"] for p in periodos]
     carreras_opc = ["Todas"] + CARRERAS_OFICIALES
@@ -2117,7 +2166,8 @@ def render_generar_reporte():
     )
 
     if not st.session_state.reporte_listo:
-        render_banner("Generar reporte", "Inasistencias aceptadas del período seleccionado.")
+        render_banner("Generar reporte", "Inasistencias justificadas del período seleccionado.")
+        render_eciem_nav_pills(total_sol, en_proc)
         c1, c2, c3 = st.columns(3, gap="medium")
         with c1:
             periodo_sel = st.selectbox("Período académico", nombres_periodos, index=idx_per)
@@ -2130,9 +2180,10 @@ def render_generar_reporte():
         periodo_sel = filtros_guardados["periodo"]
         carrera_sel = filtros_guardados.get("carrera", "Todas")
         estado_sel = filtros_guardados["estado"]
-        render_banner("Reporte listo", "Inasistencias aceptadas del período seleccionado.")
+        render_banner("Reporte listo", "Inasistencias justificadas del período seleccionado.")
+        render_eciem_nav_pills(total_sol, en_proc)
         st.markdown(
-            f'<div class="ucn-strip-ok">inasistencias_{esc(periodo_sel)}.csv · Reporte listo</div>',
+            f'<div class="ucn-strip-ok">📄 inasistencias_{esc(periodo_sel)}.csv · Listo para descargar</div>',
             unsafe_allow_html=True,
         )
 
@@ -2157,8 +2208,8 @@ def render_generar_reporte():
     for _, r in df_rep.iterrows():
         filas_html.append(
             f"<tr>"
-            f"<td><strong>{esc(r['numero_solicitud'])}</strong></td>"
-            f"<td>{esc(r['nombre_estudiante'])}</td>"
+            f"<td><span class='ucn-sol-id'>#{esc(r['numero_solicitud'])}</span></td>"
+            f"<td><strong>{esc(r['nombre_estudiante'])}</strong></td>"
             f"<td>{esc(r['nombre_asignatura'])}</td>"
             f"<td><strong>{esc(r['paralelo'])}</strong></td>"
             f"<td>{esc(r['fecha_inicio_ausencia'].strftime('%d/%m/%Y'))}</td>"
@@ -2185,10 +2236,7 @@ def render_generar_reporte():
             <span>{len(df_rep)} detalles</span>
             <span>{df_rep['numero_solicitud'].nunique()} solicitudes</span>
             <span>{df_rep['rut_estudiante'].nunique()} estudiantes</span>
-            <span>{int(df_rep['dias_ausencia'].sum())} días por detalle</span>
-        </div>
-        <div class="ucn-strip-warn">
-            Salida depurada para notificación docente: omite diagnósticos médicos y respaldos adjuntos. Comparte el reporte solo con personal autorizado.
+            <span>{int(df_rep['dias_ausencia'].sum())} días totales</span>
         </div>
         """,
         unsafe_allow_html=True,
