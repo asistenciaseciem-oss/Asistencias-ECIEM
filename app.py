@@ -52,7 +52,7 @@ NIVELES_MAPA = {
 }
 
 # ==============================================================================
-# ESTILOS CSS (ALTA ESPECIFICIDAD PARA MODO CLARO EN INPUTS, SELECTS Y CALENDARIO)
+# ESTILOS CSS (MODO CLARO BLINDADO EN INPUTS, SELECTS, CALENDARIO Y BOTONES)
 # ==============================================================================
 CSS_BASE = """
 <style>
@@ -288,47 +288,51 @@ html body div.stButton > button[data-testid="stBaseButton-secondary"]:hover {
 }
 
 /* ==========================================================================
-   CONTRASTE BLANCO + TEXTO OSCURO EN TODOS LOS CONTROLES (SIN MODO OSCURO)
+   BLINDAJE TOTAL DE MODO CLARO EN INPUTS, SELECTS, TEXTAREAS Y CALENDARIOS
    ========================================================================== */
+html body [data-testid="stTextInput"] div,
+html body [data-testid="stDateInput"] div,
+html body [data-testid="stSelectbox"] div,
+html body [data-testid="stTextArea"] div,
 html body div[data-baseweb="input"],
-html body div[data-baseweb="input"] > div,
+html body div[data-baseweb="input"] div,
 html body div[data-baseweb="base-input"],
-html body div[data-baseweb="base-input"] > div,
+html body div[data-baseweb="base-input"] div,
 html body div[data-baseweb="select"],
-html body div[data-baseweb="select"] > div,
-html body [data-testid="stTextArea"] > div,
-html body [data-testid="stTextArea"] > div > div,
-html body [data-testid="stTextArea"] textarea {
+html body div[data-baseweb="select"] div {
     background-color: #FFFFFF !important;
     color: #0F172A !important;
 }
 
-/* Borde exterior único y limpio en inputs, fechas y selectores */
-html body div[data-baseweb="input"] > div,
-html body div[data-baseweb="select"] > div,
+/* Borde único limpio en cada campo */
+html body [data-testid="stTextInput"] div[data-baseweb="input"] > div,
+html body [data-testid="stDateInput"] div[data-baseweb="input"] > div,
+html body [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
 html body [data-testid="stTextArea"] textarea {
     border: 1px solid #CBD5E1 !important;
     border-radius: 10px !important;
     min-height: 42px !important;
+    background-color: #FFFFFF !important;
 }
 
-/* Contenedores internos sin bordes ni fondos oscuros heredados */
+/* Eliminar doble borde en contenedores internos */
 html body div[data-baseweb="base-input"],
 html body div[data-baseweb="base-input"] > div,
 html body div[data-baseweb="select"] > div > div {
-    background-color: transparent !important;
     border: none !important;
 }
 
-/* Todos los textos e inputs en negro pizarra #0F172A 100% opaco */
+/* Texto de entrada y opciones seleccionadas en negro pizarra #0F172A */
+html body [data-testid="stTextInput"] input,
+html body [data-testid="stDateInput"] input,
+html body [data-testid="stSelectbox"] span,
+html body [data-testid="stSelectbox"] div,
+html body [data-testid="stSelectbox"] input,
+html body [data-testid="stTextArea"] textarea,
 html body div[data-baseweb="input"] input,
 html body div[data-baseweb="base-input"] input,
 html body div[data-baseweb="select"] span,
-html body div[data-baseweb="select"] div,
-html body div[data-baseweb="select"] input,
-html body [data-testid="stDateInput"] input,
-html body [data-testid="stTextInput"] input,
-html body [data-testid="stTextArea"] textarea {
+html body div[data-baseweb="select"] div {
     color: #0F172A !important;
     -webkit-text-fill-color: #0F172A !important;
     opacity: 1 !important;
@@ -336,10 +340,8 @@ html body [data-testid="stTextArea"] textarea {
     font-weight: 500 !important;
 }
 
-/* Selección de texto dentro de inputs (ej. año en fecha) en azul UCN, nunca rojo */
-html body div[data-baseweb="input"] input::selection,
-html body [data-testid="stDateInput"] input::selection,
-html body [data-testid="stTextInput"] input::selection,
+/* Selección de texto dentro de inputs en azul UCN */
+html body input::selection,
 html body textarea::selection {
     background-color: #003A70 !important;
     color: #FFFFFF !important;
@@ -347,7 +349,7 @@ html body textarea::selection {
 }
 
 /* Placeholders visibles */
-html body div[data-baseweb="input"] input::placeholder,
+html body input::placeholder,
 html body textarea::placeholder {
     color: #64748B !important;
     -webkit-text-fill-color: #64748B !important;
@@ -355,17 +357,18 @@ html body textarea::placeholder {
     font-weight: 400 !important;
 }
 
-/* Flechas e íconos de calendario visibles */
+/* Íconos de flechas y calendario */
+html body [data-testid="stSelectbox"] svg,
+html body [data-testid="stDateInput"] svg,
+html body [data-testid="stTextInput"] svg,
 html body div[data-baseweb="select"] svg,
-html body div[data-baseweb="input"] svg,
-html body [data-testid="stDateInput"] svg {
+html body div[data-baseweb="input"] svg {
     fill: #334155 !important;
     color: #334155 !important;
     opacity: 1 !important;
 }
 
-/* Borde activo en azul UCN (elimina el rojo de Streamlit) */
-html body div[data-baseweb="input"]:focus-within,
+/* Borde activo al hacer foco */
 html body div[data-baseweb="input"] > div:focus-within,
 html body div[data-baseweb="select"] > div:focus-within,
 html body [data-testid="stTextArea"] textarea:focus {
@@ -374,27 +377,31 @@ html body [data-testid="stTextArea"] textarea:focus {
 }
 
 /* ==========================================================================
-   CALENDARIO EMERGENTE Y LISTAS DESPLEGABLES (100% BLANCO Y LEGIBLE)
+   POPOVERS, MENÚS DESPLEGABLES Y CALENDARIO EMERGENTE (100% BLANCO)
    ========================================================================== */
 html body div[data-baseweb="popover"],
-html body div[data-baseweb="popover"] > div,
-html body div[data-baseweb="popover"] [role="dialog"],
+html body div[data-baseweb="popover"] div,
+html body div[data-baseweb="popover"] ul,
+html body div[data-baseweb="popover"] li,
+html body div[data-baseweb="popover"] table,
+html body div[data-baseweb="popover"] thead,
+html body div[data-baseweb="popover"] tbody,
+html body div[data-baseweb="popover"] tr,
+html body div[data-baseweb="popover"] th,
+html body div[data-baseweb="popover"] td,
 html body div[data-baseweb="calendar"],
-html body div[data-baseweb="calendar"] > div,
-html body div[data-baseweb="calendar"] header,
-html body div[data-baseweb="calendar"] [role="grid"],
-html body div[data-baseweb="calendar"] [role="row"],
+html body div[data-baseweb="calendar"] div,
 html body div[data-baseweb="menu"],
 html body ul[role="listbox"],
 html body ul[role="listbox"] li {
     background-color: #FFFFFF !important;
     color: #0F172A !important;
+    -webkit-text-fill-color: #0F172A !important;
     border-color: #E2E8F0 !important;
 }
 
 html body div[data-baseweb="popover"] *,
 html body div[data-baseweb="calendar"] *,
-html body div[data-baseweb="menu"] *,
 html body ul[role="listbox"] * {
     color: #0F172A !important;
     -webkit-text-fill-color: #0F172A !important;
@@ -407,7 +414,7 @@ html body div[data-baseweb="popover"] svg {
     color: #003A70 !important;
 }
 
-/* Día seleccionado en el calendario y opción activa en lista */
+/* Día seleccionado en el calendario y opción activa en listas */
 html body div[data-baseweb="calendar"] [aria-selected="true"],
 html body div[data-baseweb="calendar"] [aria-selected="true"] *,
 html body ul[role="listbox"] li:hover,
@@ -728,7 +735,7 @@ def get_supabase_client() -> Client:
 supabase: Client = get_supabase_client()
 
 # ==============================================================================
-# UTILIDADES DE VALIDACIÓN, FORMATO HTML Y BASE DE DATOS
+# UTILIDADES DE RUT CHILENO (FORMATO AUTOMÁTICO), VALIDACIÓN Y BASE DE DATOS
 # ==============================================================================
 def esc(val) -> str:
     return html.escape("" if val is None else str(val))
@@ -756,18 +763,34 @@ def formatear_rango_inasistencia(f_ini: date, f_ter: date) -> str:
         return f"{f_ini.day:02d} al {f_ter.strftime('%d/%m/%Y')}"
     return f"{f_ini.strftime('%d/%m/%Y')} al {f_ter.strftime('%d/%m/%Y')}"
 
+def limpiar_caracteres_rut(rut_str: str) -> str:
+    return re.sub(r"[^0-9kK]", "", str(rut_str or "")).upper()
+
 def normalizar_rut(rut_str: str) -> str:
-    limpio = str(rut_str).strip().upper().replace(".", "").replace(" ", "")
-    if "-" not in limpio and len(limpio) >= 2:
-        limpio = f"{limpio[:-1]}-{limpio[-1]}"
+    """Devuelve RUT sin puntos y con guión para Supabase (Ej.: 12345678-5)."""
+    limpio = limpiar_caracteres_rut(rut_str)
+    if len(limpio) >= 2:
+        return f"{limpio[:-1]}-{limpio[-1]}"
     return limpio
 
+def formatear_rut_visual(rut_str: str) -> str:
+    """Convierte cualquier entrada (123456785, 12345678-5, 12.345.678k) a 12.345.678-5."""
+    limpio = limpiar_caracteres_rut(rut_str)
+    if len(limpio) < 2:
+        return str(rut_str or "").strip().upper()
+    cuerpo, dv = limpio[:-1], limpio[-1]
+    if cuerpo.isdigit():
+        cuerpo_puntos = f"{int(cuerpo):,}".replace(",", ".")
+    else:
+        cuerpo_puntos = cuerpo
+    return f"{cuerpo_puntos}-{dv}"
+
 def validar_rut_chileno(rut_str: str) -> bool:
-    rut = normalizar_rut(rut_str)
-    if "-" not in rut:
+    limpio = limpiar_caracteres_rut(rut_str)
+    if len(limpio) < 2:
         return False
-    cuerpo, dv = rut.split("-", 1)
-    if not cuerpo.isdigit() or len(dv) != 1:
+    cuerpo, dv = limpio[:-1], limpio[-1]
+    if not cuerpo.isdigit():
         return False
     suma = 0
     multiplicador = 2
@@ -877,7 +900,7 @@ def cargar_hechos_detallados() -> pd.DataFrame:
                 "fecha_inicio_ausencia": f_ini,
                 "fecha_termino_ausencia": f_ter,
                 "dias_ausencia": dias_ausencia,
-                "rut_estudiante": r["rut_estudiante"],
+                "rut_estudiante": formatear_rut_visual(r["rut_estudiante"]),
                 "nombre_estudiante": est.get("nombre_estudiante", ""),
                 "nombre_carrera": est.get("nombre_carrera", ""),
                 "id_paralelo": r["id_paralelo"],
@@ -1034,6 +1057,9 @@ defaults = {
     "rep_filtros": {"periodo": "2026-2", "carrera": "Todas", "estado": "Aceptado"},
     "filtro_consulta_rut": "",
     "filtro_consulta_estado": "Todos",
+    "reg_rut_input": "",
+    "reg_nombre_est": "",
+    "reg_carrera_sel": CARRERAS_OFICIALES[0],
     "ultimo_rut_autodetectado": "",
 }
 for k, v in defaults.items():
@@ -1336,8 +1362,21 @@ def render_inicio():
     )
 
 # ==============================================================================
-# PANTALLA 03: REGISTRAR SOLICITUD (CARRERA -> NIVEL -> ASIGNATURA -> PARALELO)
+# PANTALLA 03: REGISTRAR SOLICITUD (INGRESO DIRECTO + AUTOFORMATO DE RUT)
 # ==============================================================================
+def on_rut_change_callback(mapa_estudiantes_ref):
+    raw_val = st.session_state.get("reg_rut_input", "")
+    formateado = formatear_rut_visual(raw_val)
+    st.session_state["reg_rut_input"] = formateado
+    rut_bd = normalizar_rut(formateado)
+    if validar_rut_chileno(formateado) and rut_bd != st.session_state.get("ultimo_rut_autodetectado", ""):
+        est_existente = mapa_estudiantes_ref.get(rut_bd)
+        if est_existente:
+            st.session_state["reg_nombre_est"] = est_existente["nombre_estudiante"]
+            if est_existente["nombre_carrera"] in CARRERAS_OFICIALES:
+                st.session_state["reg_carrera_sel"] = est_existente["nombre_carrera"]
+        st.session_state["ultimo_rut_autodetectado"] = rut_bd
+
 def render_registrar_solicitud():
     if st.session_state.usuario["rol"] != "Secretaría":
         st.session_state.pagina = "Inicio"
@@ -1373,7 +1412,9 @@ def render_registrar_solicitud():
                 f"""
                 <span class="ucn-solid-card"></span>
                 <div style="margin-bottom:10px;">{badge_estado_html('En proceso')}</div>
-                <div style="font-size:19px;font-weight:700;color:#1E293B;margin-bottom:4px;">{esc(info['nombre_estudiante'])}</div>
+                <div style="font-size:19px;font-weight:700;color:#1E293B;margin-bottom:4px;">
+                    {esc(info['nombre_estudiante'])} · {esc(info['rut_visual'])}
+                </div>
                 <div style="font-size:13.5px;color:#475569;margin-bottom:14px;">
                     Entrega y recepción: {esc(info['fecha_entrega'].strftime('%d/%m/%Y'))} ·
                     {esc(info['nombre_archivo'])} · {len(info['detalles'])} detalle(s)
@@ -1416,67 +1457,52 @@ def render_registrar_solicitud():
         )
         return
 
-    # PASO 1: IDENTIFICACIÓN DEL ESTUDIANTE
+    # PASO 1: DATOS DEL ESTUDIANTE (INGRESO DIRECTO SIN RESTRICCIÓN DE BDD + AUTOFORMATO RUT)
     with st.container(border=True):
         st.markdown(
             """
             <span class="ucn-solid-card"></span>
             <div class="ucn-step-header">
                 <span class="ucn-step-num">1</span>
-                <span class="ucn-step-title">Identificación del estudiante</span>
-                <span class="ucn-step-sub">Valida el RUT registrado</span>
+                <span class="ucn-step-title">Datos del estudiante</span>
+                <span class="ucn-step-sub">El RUT se formatea automáticamente al ingresarlo</span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        c_rut, c_ficha = st.columns([1.1, 1.9], gap="large", vertical_alignment="center")
-        estudiante_actual = None
+        c_rut, c_nom, c_car = st.columns([1.0, 1.4, 1.3], gap="medium")
 
         with c_rut:
-            rut_input = st.text_input("RUT del estudiante", placeholder="Ej.: 12.345.678-5")
-            if rut_input.strip():
-                if not validar_rut_chileno(rut_input):
-                    st.markdown('<div class="ucn-strip-err">RUT inválido. Revisa el dígito verificador.</div>', unsafe_allow_html=True)
-                else:
-                    rut_norm_act = normalizar_rut(rut_input)
-                    estudiante_actual = mapa_estudiantes.get(rut_norm_act)
-                    if not estudiante_actual:
-                        st.markdown('<div class="ucn-strip-err">Estudiante no registrado.</div>', unsafe_allow_html=True)
-                    else:
-                        if st.session_state.ultimo_rut_autodetectado != rut_norm_act:
-                            if estudiante_actual["nombre_carrera"] in CARRERAS_OFICIALES:
-                                st.session_state["reg_carrera_sel"] = estudiante_actual["nombre_carrera"]
-                            st.session_state.ultimo_rut_autodetectado = rut_norm_act
+            rut_raw_val = st.text_input(
+                "RUT del estudiante",
+                key="reg_rut_input",
+                placeholder="Ej.: 12.345.678-5",
+                on_change=on_rut_change_callback,
+                args=(mapa_estudiantes,),
+            )
+            rut_formateado = formatear_rut_visual(rut_raw_val)
+            rut_valido = validar_rut_chileno(rut_formateado) if rut_raw_val.strip() else False
+            if rut_raw_val.strip() and not rut_valido:
+                st.markdown('<div class="ucn-strip-err">Dígito verificador inválido.</div>', unsafe_allow_html=True)
 
-        with c_ficha:
-            if estudiante_actual:
-                st.markdown(
-                    f"""
-                    <div class="ucn-soft-box">
-                        <div class="ucn-soft-box-title">{esc(estudiante_actual['nombre_estudiante'])}</div>
-                        <div class="ucn-soft-box-sub">
-                            RUT {esc(estudiante_actual['rut'])} · <strong>{esc(estudiante_actual['nombre_carrera'])}</strong> ·
-                            Ingreso {esc(estudiante_actual['anio_ingreso'])} ({esc(estudiante_actual['estado_matricula'])})
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    """
-                    <div class="ucn-soft-box">
-                        <div class="ucn-soft-box-title">Estudiante por seleccionar</div>
-                        <div class="ucn-soft-box-sub">Ingresa un RUT válido para cargar su nombre, carrera y estado académico.</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        with c_nom:
+            nombre_est_input = st.text_input(
+                "Nombre completo del estudiante",
+                key="reg_nombre_est",
+                placeholder="Ej.: Camila Rojas Pérez",
+            )
+
+        with c_car:
+            carrera_sel = st.selectbox(
+                "Carrera",
+                CARRERAS_OFICIALES,
+                key="reg_carrera_sel",
+            )
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA (CARRERA -> NIVEL -> ASIGNATURA -> PARALELO)
+    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA (NIVEL -> ASIGNATURA -> PARALELO)
     with st.container(border=True):
         st.markdown(
             """
@@ -1484,16 +1510,14 @@ def render_registrar_solicitud():
             <div class="ucn-step-header">
                 <span class="ucn-step-num">2</span>
                 <span class="ucn-step-title">Asignaturas y fechas de inasistencia</span>
-                <span class="ucn-step-sub">Carrera → Nivel (1° a 6°) → Asignatura · Paralelo libre</span>
+                <span class="ucn-step-sub">Nivel (1° a 6°) → Asignatura · Paralelo libre</span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        s1, s2, s3, s4 = st.columns([1.30, 0.95, 1.45, 0.65], gap="small")
+        s1, s2, s3 = st.columns([1.05, 1.75, 0.70], gap="medium")
         with s1:
-            carrera_sel = st.selectbox("Carrera", CARRERAS_OFICIALES, key="reg_carrera_sel")
-        with s2:
             nivel_label = st.selectbox("Nivel (Semestre)", list(NIVELES_MAPA.keys()), key="reg_nivel_sel")
             nivel_num = NIVELES_MAPA[nivel_label]
 
@@ -1505,10 +1529,10 @@ def render_registrar_solicitud():
             asig_filtradas = [a for a in asignaturas if a.get("carrera") == carrera_sel] or asignaturas
 
         mapa_asig = {a["nombre_asignatura"]: a for a in asig_filtradas}
-        with s3:
+        with s2:
             asig_label = st.selectbox("Asignatura del nivel", list(mapa_asig.keys()))
 
-        with s4:
+        with s3:
             paralelo_input = st.text_input("Paralelo", placeholder="Ej.: A, B, 1")
 
         st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
@@ -1653,10 +1677,10 @@ def render_registrar_solicitud():
             )
 
         errores = []
-        if not rut_input.strip() or not validar_rut_chileno(rut_input):
-            errores.append("El RUT no es válido. Revisa el dígito verificador.")
-        elif estudiante_actual is None:
-            errores.append("Estudiante no registrado.")
+        if not rut_raw_val.strip() or not validar_rut_chileno(rut_formateado):
+            errores.append("Ingresa un RUT válido (el dígito verificador no coincide).")
+        if not nombre_est_input.strip():
+            errores.append("Ingresa el nombre completo del estudiante.")
         if f_termino < f_inicio and not st.session_state.detalles_pendientes:
             errores.append("La fecha de término no puede ser anterior al inicio.")
         if not detalles_a_guardar:
@@ -1668,6 +1692,20 @@ def render_registrar_solicitud():
             for e_msg in errores:
                 st.markdown(f'<div class="ucn-strip-err">{esc(e_msg)}</div>', unsafe_allow_html=True)
             return
+
+        # Guardar/actualizar estudiante en dim_estudiante directamente sin exigir pre-registro
+        rut_bd = normalizar_rut(rut_formateado)
+        est_previo = mapa_estudiantes.get(rut_bd)
+        supabase.table("dim_estudiante").upsert(
+            {
+                "rut": rut_bd,
+                "nombre_estudiante": nombre_est_input.strip(),
+                "nombre_carrera": carrera_sel,
+                "anio_ingreso": est_previo["anio_ingreso"] if est_previo else date.today().year,
+                "estado_matricula": est_previo["estado_matricula"] if est_previo else "Alumno Regular",
+            },
+            on_conflict="rut",
+        ).execute()
 
         id_fecha_ingreso = asegurar_fecha_en_dim_tiempo(fecha_entrega)
         num_solicitud = obtener_siguiente_numero_solicitud()
@@ -1683,7 +1721,7 @@ def render_registrar_solicitud():
                     "id_fecha_resolucion": None,
                     "fecha_inicio_ausencia": det["fecha_inicio"].isoformat(),
                     "fecha_termino_ausencia": det["fecha_termino"].isoformat(),
-                    "rut_estudiante": estudiante_actual["rut"],
+                    "rut_estudiante": rut_bd,
                     "id_paralelo": det["id_paralelo"],
                     "paralelo": det["paralelo"],
                     "id_estado": estado_en_proceso,
@@ -1699,9 +1737,13 @@ def render_registrar_solicitud():
 
         supabase.table("hechos_justificacion").insert(registros).execute()
         st.session_state.detalles_pendientes = []
+        st.session_state.reg_rut_input = ""
+        st.session_state.reg_nombre_est = ""
+        st.session_state.ultimo_rut_autodetectado = ""
         st.session_state.ultima_solicitud_guardada = {
             "numero_solicitud": num_solicitud,
-            "nombre_estudiante": estudiante_actual["nombre_estudiante"],
+            "rut_visual": rut_formateado,
+            "nombre_estudiante": nombre_est_input.strip(),
             "fecha_entrega": fecha_entrega,
             "nombre_archivo": archivo_respaldo.name,
             "detalles": detalles_a_guardar,
@@ -1754,9 +1796,10 @@ def render_consultar_revisar():
         if not df_fil.empty:
             if rut_q.strip():
                 q_low = rut_q.strip().lower()
-                q_rut = normalizar_rut(rut_q).lower()
+                q_rut_vis = formatear_rut_visual(rut_q).lower()
                 df_fil = df_fil[
-                    df_fil["rut_estudiante"].str.lower().str.contains(q_rut, na=False)
+                    df_fil["rut_estudiante"].str.lower().str.contains(q_rut_vis, na=False)
+                    | df_fil["rut_estudiante"].str.replace(".", "", regex=False).str.lower().str.contains(normalizar_rut(rut_q).lower(), na=False)
                     | df_fil["nombre_estudiante"].str.lower().str.contains(q_low, na=False)
                 ]
             if est_q != "Todos":
@@ -1787,7 +1830,7 @@ def render_consultar_revisar():
             filas_html.append(
                 f"<tr>"
                 f"<td><span class='ucn-sol-id'>#{esc(r['numero_solicitud'])}</span></td>"
-                f"<td><strong>{esc(r['nombre_estudiante'])}</strong></td>"
+                f"<td><strong>{esc(r['nombre_estudiante'])}</strong><br><span style='font-size:12px;color:#64748B;'>{esc(r['rut_estudiante'])}</span></td>"
                 f"<td>📅 {esc(f_ent)}</td>"
                 f"<td>Nivel {esc(r['semestre'])} · {esc(r['nombre_asignatura'])}</td>"
                 f"<td><strong>{esc(r['paralelo'])}</strong></td>"
@@ -1845,9 +1888,10 @@ def render_consultar_revisar():
         if not df_fil.empty:
             if rut_q.strip():
                 q_low = rut_q.strip().lower()
-                q_rut = normalizar_rut(rut_q).lower()
+                q_rut_vis = formatear_rut_visual(rut_q).lower()
                 df_fil = df_fil[
-                    df_fil["rut_estudiante"].str.lower().str.contains(q_rut, na=False)
+                    df_fil["rut_estudiante"].str.lower().str.contains(q_rut_vis, na=False)
+                    | df_fil["rut_estudiante"].str.replace(".", "", regex=False).str.lower().str.contains(normalizar_rut(rut_q).lower(), na=False)
                     | df_fil["nombre_estudiante"].str.lower().str.contains(q_low, na=False)
                 ]
             if est_q != "Todos":
@@ -2145,11 +2189,12 @@ def render_cargar_planilla():
 
         rut_raw = "" if pd.isna(row["Rut"]) else str(row["Rut"]).strip()
         rut_norm = normalizar_rut(rut_raw)
+        rut_vis = formatear_rut_visual(rut_raw) if rut_raw else ""
         est_obj = mapa_est.get(rut_norm)
         if not rut_raw or not validar_rut_chileno(rut_raw):
             errores_fila.append("RUT inválido")
         elif est_obj is None:
-            errores_fila.append(f"RUT {rut_norm} no registrado")
+            errores_fila.append(f"RUT {rut_vis} no registrado")
 
         asig_raw = "" if pd.isna(row["Asignatura"]) else str(row["Asignatura"]).strip()
         par_raw = "" if ("Paralelo" not in df_raw.columns or pd.isna(row["Paralelo"])) else str(row["Paralelo"]).strip()
@@ -2185,7 +2230,7 @@ def render_cargar_planilla():
 
         val_txt = "Válida" if not errores_fila else "Error: " + "; ".join(errores_fila)
         vista_previa.append(
-            (fila_excel, rut_raw, row["Nombre"], asig_raw, par_final, row["Fecha inicio"], row["Fecha Termino"], val_txt)
+            (fila_excel, rut_vis or rut_raw, row["Nombre"], asig_raw, par_final, row["Fecha inicio"], row["Fecha Termino"], val_txt)
         )
         if not errores_fila:
             filas_validas.append(
