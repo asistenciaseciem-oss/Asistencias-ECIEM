@@ -52,7 +52,7 @@ NIVELES_MAPA = {
 }
 
 # ==============================================================================
-# ESTILOS CSS (CONTRASTE GARANTIZADO EN TODOS LOS CONTROLES + ESTILO ECIEM)
+# ESTILOS CSS (ALTA ESPECIFICIDAD PARA MODO CLARO EN INPUTS, SELECTS Y CALENDARIO)
 # ==============================================================================
 CSS_BASE = """
 <style>
@@ -112,9 +112,9 @@ section.main {
 /* ==========================================================================
    TARJETAS BLANCAS SÓLIDAS
    ========================================================================== */
-div[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .ucn-solid-card),
-div[data-testid="stVerticalBlock"]:has(> .element-container .ucn-solid-card),
-[data-testid="stVerticalBlockBorderWrapper"] {
+html body div[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .ucn-solid-card),
+html body div[data-testid="stVerticalBlock"]:has(> .element-container .ucn-solid-card),
+html body [data-testid="stVerticalBlockBorderWrapper"] {
     background-color: #FFFFFF !important;
     border: 1px solid #DCE5F0 !important;
     border-radius: 16px !important;
@@ -233,9 +233,9 @@ div[data-testid="stVerticalBlock"]:has(> .element-container .ucn-solid-card),
 /* ==========================================================================
    BOTONES TIPO PÍLDORA ECIEM / UCN
    ========================================================================== */
-div.stButton > button,
-div.stDownloadButton > button,
-div.stFormSubmitButton > button {
+html body div.stButton > button,
+html body div.stDownloadButton > button,
+html body div.stFormSubmitButton > button {
     border-radius: 999px !important;
     min-height: 42px !important;
     height: 42px !important;
@@ -247,60 +247,88 @@ div.stFormSubmitButton > button {
     margin: 0 !important;
 }
 
-div.stButton > button[kind="primary"],
-div.stButton > button[data-testid="stBaseButton-primary"],
-div.stDownloadButton > button[kind="primary"],
-div.stDownloadButton > button[data-testid="stBaseButton-primary"],
-div.stFormSubmitButton > button,
-div.stFormSubmitButton > button[kind="primary"],
-div.stFormSubmitButton > button[data-testid="stBaseButton-primaryFormSubmit"] {
+html body div.stButton > button[kind="primary"],
+html body div.stButton > button[data-testid="stBaseButton-primary"],
+html body div.stDownloadButton > button[kind="primary"],
+html body div.stDownloadButton > button[data-testid="stBaseButton-primary"],
+html body div.stFormSubmitButton > button,
+html body div.stFormSubmitButton > button[kind="primary"],
+html body div.stFormSubmitButton > button[data-testid="stBaseButton-primaryFormSubmit"] {
     background-color: #003A70 !important;
     border: 1px solid #003A70 !important;
     color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
 }
-div.stButton > button[kind="primary"]:hover,
-div.stButton > button[data-testid="stBaseButton-primary"]:hover,
-div.stDownloadButton > button[kind="primary"]:hover,
-div.stFormSubmitButton > button:hover,
-div.stFormSubmitButton > button[data-testid="stBaseButton-primaryFormSubmit"]:hover {
+html body div.stButton > button[kind="primary"]:hover,
+html body div.stButton > button[data-testid="stBaseButton-primary"]:hover,
+html body div.stDownloadButton > button[kind="primary"]:hover,
+html body div.stFormSubmitButton > button:hover,
+html body div.stFormSubmitButton > button[data-testid="stBaseButton-primaryFormSubmit"]:hover {
     background-color: #002D72 !important;
     border-color: #002D72 !important;
     color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
 }
 
-div.stButton > button[kind="secondary"],
-div.stButton > button[data-testid="stBaseButton-secondary"],
-div.stDownloadButton > button[kind="secondary"],
-div.stFormSubmitButton > button[kind="secondary"] {
+html body div.stButton > button[kind="secondary"],
+html body div.stButton > button[data-testid="stBaseButton-secondary"],
+html body div.stDownloadButton > button[kind="secondary"],
+html body div.stFormSubmitButton > button[kind="secondary"] {
     background-color: #EEF3F8 !important;
     border: 1px solid #CBD5E1 !important;
     color: #0F172A !important;
+    -webkit-text-fill-color: #0F172A !important;
 }
-div.stButton > button[kind="secondary"]:hover,
-div.stButton > button[data-testid="stBaseButton-secondary"]:hover {
+html body div.stButton > button[kind="secondary"]:hover,
+html body div.stButton > button[data-testid="stBaseButton-secondary"]:hover {
     background-color: #E1EAF4 !important;
     border-color: #003A70 !important;
     color: #003A70 !important;
+    -webkit-text-fill-color: #003A70 !important;
 }
 
 /* ==========================================================================
-   CONTRASTE NÍTIDO FORZADO EN SELECTBOX, DATEINPUT, TEXTINPUT Y CALENDARIO
+   CONTRASTE BLANCO + TEXTO OSCURO EN TODOS LOS CONTROLES (SIN MODO OSCURO)
    ========================================================================== */
-[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-[data-testid="stDateInput"] div[data-baseweb="input"] > div,
-[data-testid="stTextInput"] div[data-baseweb="input"] > div,
-[data-testid="stTextArea"] textarea {
+html body div[data-baseweb="input"],
+html body div[data-baseweb="input"] > div,
+html body div[data-baseweb="base-input"],
+html body div[data-baseweb="base-input"] > div,
+html body div[data-baseweb="select"],
+html body div[data-baseweb="select"] > div,
+html body [data-testid="stTextArea"] > div,
+html body [data-testid="stTextArea"] > div > div,
+html body [data-testid="stTextArea"] textarea {
     background-color: #FFFFFF !important;
+    color: #0F172A !important;
+}
+
+/* Borde exterior único y limpio en inputs, fechas y selectores */
+html body div[data-baseweb="input"] > div,
+html body div[data-baseweb="select"] > div,
+html body [data-testid="stTextArea"] textarea {
     border: 1px solid #CBD5E1 !important;
     border-radius: 10px !important;
     min-height: 42px !important;
 }
 
-/* Todos los textos internos de selectbox, dateinput, textinput y textarea */
-[data-testid="stSelectbox"] div[data-baseweb="select"] *,
-[data-testid="stDateInput"] div[data-baseweb="input"] *,
-[data-testid="stTextInput"] div[data-baseweb="input"] input,
-[data-testid="stTextArea"] textarea {
+/* Contenedores internos sin bordes ni fondos oscuros heredados */
+html body div[data-baseweb="base-input"],
+html body div[data-baseweb="base-input"] > div,
+html body div[data-baseweb="select"] > div > div {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Todos los textos e inputs en negro pizarra #0F172A 100% opaco */
+html body div[data-baseweb="input"] input,
+html body div[data-baseweb="base-input"] input,
+html body div[data-baseweb="select"] span,
+html body div[data-baseweb="select"] div,
+html body div[data-baseweb="select"] input,
+html body [data-testid="stDateInput"] input,
+html body [data-testid="stTextInput"] input,
+html body [data-testid="stTextArea"] textarea {
     color: #0F172A !important;
     -webkit-text-fill-color: #0F172A !important;
     opacity: 1 !important;
@@ -308,59 +336,108 @@ div.stButton > button[data-testid="stBaseButton-secondary"]:hover {
     font-weight: 500 !important;
 }
 
-/* Placeholders visibles en gris medio */
-[data-testid="stTextInput"] input::placeholder,
-[data-testid="stTextArea"] textarea::placeholder {
+/* Selección de texto dentro de inputs (ej. año en fecha) en azul UCN, nunca rojo */
+html body div[data-baseweb="input"] input::selection,
+html body [data-testid="stDateInput"] input::selection,
+html body [data-testid="stTextInput"] input::selection,
+html body textarea::selection {
+    background-color: #003A70 !important;
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Placeholders visibles */
+html body div[data-baseweb="input"] input::placeholder,
+html body textarea::placeholder {
     color: #64748B !important;
     -webkit-text-fill-color: #64748B !important;
     opacity: 1 !important;
     font-weight: 400 !important;
 }
 
-/* Flechas desplegables e íconos de calendario visibles */
-[data-testid="stSelectbox"] svg,
-[data-testid="stDateInput"] svg,
-[data-testid="stTextInput"] svg {
+/* Flechas e íconos de calendario visibles */
+html body div[data-baseweb="select"] svg,
+html body div[data-baseweb="input"] svg,
+html body [data-testid="stDateInput"] svg {
     fill: #334155 !important;
     color: #334155 !important;
     opacity: 1 !important;
 }
 
-/* Menús desplegables y calendario emergente */
-div[data-baseweb="popover"],
-div[data-baseweb="popover"] > div,
-ul[role="listbox"],
-ul[role="listbox"] li,
-ul[role="listbox"] li *,
-div[data-baseweb="calendar"],
-div[data-baseweb="calendar"] * {
-    background-color: #FFFFFF !important;
-    color: #0F172A !important;
-    -webkit-text-fill-color: #0F172A !important;
-    opacity: 1 !important;
-}
-ul[role="listbox"] li:hover,
-ul[role="listbox"] li:hover *,
-ul[role="listbox"] li[aria-selected="true"],
-ul[role="listbox"] li[aria-selected="true"] * {
-    background-color: #EEF3F8 !important;
-    color: #003A70 !important;
-    -webkit-text-fill-color: #003A70 !important;
-    font-weight: 600 !important;
-}
-
-div[data-baseweb="input"] > div:focus-within,
-div[data-baseweb="select"] > div:focus-within,
-textarea:focus {
+/* Borde activo en azul UCN (elimina el rojo de Streamlit) */
+html body div[data-baseweb="input"]:focus-within,
+html body div[data-baseweb="input"] > div:focus-within,
+html body div[data-baseweb="select"] > div:focus-within,
+html body [data-testid="stTextArea"] textarea:focus {
     border-color: #003A70 !important;
     box-shadow: 0 0 0 1.5px #003A70 !important;
 }
 
+/* ==========================================================================
+   CALENDARIO EMERGENTE Y LISTAS DESPLEGABLES (100% BLANCO Y LEGIBLE)
+   ========================================================================== */
+html body div[data-baseweb="popover"],
+html body div[data-baseweb="popover"] > div,
+html body div[data-baseweb="popover"] [role="dialog"],
+html body div[data-baseweb="calendar"],
+html body div[data-baseweb="calendar"] > div,
+html body div[data-baseweb="calendar"] header,
+html body div[data-baseweb="calendar"] [role="grid"],
+html body div[data-baseweb="calendar"] [role="row"],
+html body div[data-baseweb="menu"],
+html body ul[role="listbox"],
+html body ul[role="listbox"] li {
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    border-color: #E2E8F0 !important;
+}
+
+html body div[data-baseweb="popover"] *,
+html body div[data-baseweb="calendar"] *,
+html body div[data-baseweb="menu"] *,
+html body ul[role="listbox"] * {
+    color: #0F172A !important;
+    -webkit-text-fill-color: #0F172A !important;
+    opacity: 1 !important;
+}
+
+html body div[data-baseweb="calendar"] svg,
+html body div[data-baseweb="popover"] svg {
+    fill: #003A70 !important;
+    color: #003A70 !important;
+}
+
+/* Día seleccionado en el calendario y opción activa en lista */
+html body div[data-baseweb="calendar"] [aria-selected="true"],
+html body div[data-baseweb="calendar"] [aria-selected="true"] *,
+html body ul[role="listbox"] li:hover,
+html body ul[role="listbox"] li:hover *,
+html body ul[role="listbox"] li[aria-selected="true"],
+html body ul[role="listbox"] li[aria-selected="true"] * {
+    background-color: #003A70 !important;
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    font-weight: 600 !important;
+}
+
+html body div[data-baseweb="calendar"] [role="gridcell"]:hover,
+html body div[data-baseweb="calendar"] [role="gridcell"]:hover * {
+    background-color: #EEF3F8 !important;
+    color: #003A70 !important;
+    -webkit-text-fill-color: #003A70 !important;
+}
+
 /* Etiquetas de campos */
-.stTextInput label, .stSelectbox label, .stDateInput label,
-.stTextArea label, .stFileUploader label,
-.stTextInput label p, .stSelectbox label p, .stDateInput label p,
-.stTextArea label p, .stFileUploader label p {
+html body .stTextInput label,
+html body .stSelectbox label,
+html body .stDateInput label,
+html body .stTextArea label,
+html body .stFileUploader label,
+html body .stTextInput label p,
+html body .stSelectbox label p,
+html body .stDateInput label p,
+html body .stTextArea label p,
+html body .stFileUploader label p {
     color: #1E293B !important;
     -webkit-text-fill-color: #1E293B !important;
     font-weight: 600 !important;
@@ -369,20 +446,20 @@ textarea:focus {
 }
 
 /* File uploader claro */
-[data-testid="stFileUploader"] section,
-[data-testid="stFileUploaderDropzone"] {
+html body [data-testid="stFileUploader"] section,
+html body [data-testid="stFileUploaderDropzone"] {
     background-color: #F8FAFC !important;
     border: 1.5px dashed #CBD5E1 !important;
     border-radius: 12px !important;
     color: #1E293B !important;
 }
-[data-testid="stFileUploaderDropzone"] small,
-[data-testid="stFileUploaderDropzone"] span,
-[data-testid="stFileUploaderDropzone"] div {
+html body [data-testid="stFileUploaderDropzone"] small,
+html body [data-testid="stFileUploaderDropzone"] span,
+html body [data-testid="stFileUploaderDropzone"] div {
     color: #475569 !important;
     -webkit-text-fill-color: #475569 !important;
 }
-[data-testid="stFileUploaderDropzone"] button {
+html body [data-testid="stFileUploaderDropzone"] button {
     background-color: #FFFFFF !important;
     color: #003A70 !important;
     -webkit-text-fill-color: #003A70 !important;
