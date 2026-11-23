@@ -43,7 +43,7 @@ CARRERAS_OFICIALES = [
 ]
 
 # ==============================================================================
-# ESTILOS CSS (ESTÉTICA OFICIAL ECIEM UCN: PÍLDORAS, TARJETAS Y TABLA LIMPIA)
+# ESTILOS CSS (TARJETAS BLANCAS SÓLIDAS + BOTONES UCN + SIN FRANJAS SUPERIORES)
 # ==============================================================================
 CSS_BASE = """
 <style>
@@ -57,22 +57,35 @@ CSS_BASE = """
     --eciem-pill-bg: #EEF3F8;
     --ucn-gold: #E6B800;
     --ucn-text: #1E293B;
-    --ucn-muted: #64748B;
+    --ucn-muted: #475569;
     --ucn-border: #E2E8F0;
 }
 
-/* Ocultar chrome nativo de Streamlit y sidebar */
+/* Ocultar chrome nativo de Streamlit y sidebar sin dejar espacio superior */
 [data-testid="stSidebar"],
 [data-testid="collapsedControl"],
 #MainMenu,
 footer,
-header[data-testid="stHeader"] {
+header[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"] {
     display: none !important;
+    height: 0 !important;
 }
 
 html, body, [class*="css"], .stApp {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     color: #1E293B !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Eliminar padding superior por defecto del contenedor principal de Streamlit */
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+section.main {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
 }
 
 /* Fondo general limpio estilo portal ECIEM */
@@ -82,10 +95,23 @@ html, body, [class*="css"], .stApp {
 
 .block-container {
     max-width: 1180px !important;
-    padding-top: 0.9rem !important;
+    padding-top: 1rem !important;
     padding-bottom: 3rem !important;
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
+}
+
+/* ==========================================================================
+   TARJETAS BLANCAS SÓLIDAS (COMPATIBLE CON STREAMLIT 1.38 A 1.67+)
+   ========================================================================== */
+div[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .ucn-solid-card),
+div[data-testid="stVerticalBlock"]:has(> .element-container .ucn-solid-card),
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #DCE5F0 !important;
+    border-radius: 16px !important;
+    padding: 1.6rem 1.8rem !important;
+    box-shadow: 0 10px 30px rgba(0, 28, 70, 0.12) !important;
 }
 
 /* ==========================================================================
@@ -95,12 +121,12 @@ html, body, [class*="css"], .stApp {
     background: #FFFFFF;
     border: 1px solid #E2E8F0;
     border-radius: 14px;
-    padding: 12px 22px;
+    padding: 10px 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
-    min-height: 62px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    min-height: 60px;
 }
 .ucn-brand-group {
     display: flex;
@@ -122,7 +148,7 @@ html, body, [class*="css"], .stApp {
 .ucn-brand-divider {
     width: 1px;
     height: 28px;
-    background: #E2E8F0;
+    background: #CBD5E1;
     flex-shrink: 0;
 }
 .ucn-unit-title {
@@ -134,7 +160,7 @@ html, body, [class*="css"], .stApp {
 .ucn-unit-sub {
     font-size: 11.5px;
     font-weight: 500;
-    color: #64748B;
+    color: #475569;
     line-height: 1.2;
 }
 .ucn-role-pill {
@@ -153,6 +179,7 @@ html, body, [class*="css"], .stApp {
     font-size: 13.5px;
     font-weight: 600;
     color: #003A70;
+    white-space: nowrap;
 }
 
 /* ==========================================================================
@@ -196,61 +223,58 @@ html, body, [class*="css"], .stApp {
 }
 
 /* ==========================================================================
-   BOTONES TIPO PÍLDORA ECIEM (COMO EN EL PORTAL OFICIAL)
+   BOTONES TIPO PÍLDORA ECIEM / UCN (INCLUYE FORM SUBMIT BUTTONS)
    ========================================================================== */
 div.stButton > button,
 div.stDownloadButton > button,
 div.stFormSubmitButton > button {
     border-radius: 999px !important;
-    min-height: 40px !important;
-    height: 40px !important;
+    min-height: 42px !important;
+    height: 42px !important;
     font-weight: 600 !important;
     font-size: 13.5px !important;
-    padding: 0 20px !important;
+    padding: 0 22px !important;
     transition: all 0.16s ease !important;
     box-shadow: none !important;
     margin: 0 !important;
 }
 
-/* Botón primario (estado activo ECIEM / acción principal) */
+/* Botón primario azul UCN (normales y de formulario) */
 div.stButton > button[kind="primary"],
+div.stButton > button[data-testid="stBaseButton-primary"],
 div.stDownloadButton > button[kind="primary"],
-div.stFormSubmitButton > button[kind="primary"] {
-    background-color: #4E73A3 !important;
-    border: 1px solid #4E73A3 !important;
+div.stDownloadButton > button[data-testid="stBaseButton-primary"],
+div.stFormSubmitButton > button,
+div.stFormSubmitButton > button[kind="primary"],
+div.stFormSubmitButton > button[data-testid="stBaseButton-primaryFormSubmit"] {
+    background-color: #003A70 !important;
+    border: 1px solid #003A70 !important;
     color: #FFFFFF !important;
 }
 div.stButton > button[kind="primary"]:hover,
+div.stButton > button[data-testid="stBaseButton-primary"]:hover,
 div.stDownloadButton > button[kind="primary"]:hover,
-div.stFormSubmitButton > button[kind="primary"]:hover {
-    background-color: #003A70 !important;
-    border-color: #003A70 !important;
+div.stFormSubmitButton > button:hover,
+div.stFormSubmitButton > button[data-testid="stBaseButton-primaryFormSubmit"]:hover {
+    background-color: #002D72 !important;
+    border-color: #002D72 !important;
     color: #FFFFFF !important;
 }
 
 /* Botón secundario (píldora suave ECIEM #EEF3F8) */
 div.stButton > button[kind="secondary"],
+div.stButton > button[data-testid="stBaseButton-secondary"],
 div.stDownloadButton > button[kind="secondary"],
 div.stFormSubmitButton > button[kind="secondary"] {
     background-color: #EEF3F8 !important;
-    border: 1px solid #DCE5F0 !important;
+    border: 1px solid #CBD5E1 !important;
     color: #1E293B !important;
 }
-div.stButton > button[kind="secondary"]:hover {
+div.stButton > button[kind="secondary"]:hover,
+div.stButton > button[data-testid="stBaseButton-secondary"]:hover {
     background-color: #E1EAF4 !important;
-    border-color: #B8CBE0 !important;
+    border-color: #003A70 !important;
     color: #003A70 !important;
-}
-
-/* ==========================================================================
-   TARJETAS BLANCAS SÓLIDAS (SIN BORDES DOBLES)
-   ========================================================================== */
-[data-testid="stVerticalBlockBorderWrapper"] {
-    background-color: #FFFFFF !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 14px !important;
-    padding: 1.35rem 1.55rem !important;
-    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04) !important;
 }
 
 /* ==========================================================================
@@ -274,7 +298,7 @@ div[data-baseweb="select"] > div,
 textarea {
     border: 1px solid #CBD5E1 !important;
     border-radius: 10px !important;
-    min-height: 41px !important;
+    min-height: 42px !important;
 }
 
 div[data-baseweb="input"] input,
@@ -284,10 +308,10 @@ div[data-baseweb="select"] div,
 [data-testid="stDateInput"] input,
 [data-testid="stTextInput"] input,
 textarea {
-    color: #1E293B !important;
-    -webkit-text-fill-color: #1E293B !important;
+    color: #0F172A !important;
+    -webkit-text-fill-color: #0F172A !important;
     opacity: 1 !important;
-    font-size: 13.5px !important;
+    font-size: 14px !important;
     font-weight: 500 !important;
 }
 
@@ -310,7 +334,7 @@ div[data-baseweb="popover"] > div,
 ul[role="listbox"],
 ul[role="listbox"] li {
     background-color: #FFFFFF !important;
-    color: #1E293B !important;
+    color: #0F172A !important;
 }
 ul[role="listbox"] li:hover,
 ul[role="listbox"] li[aria-selected="true"] {
@@ -322,17 +346,17 @@ ul[role="listbox"] li[aria-selected="true"] {
 div[data-baseweb="input"] > div:focus-within,
 div[data-baseweb="select"] > div:focus-within,
 textarea:focus {
-    border-color: #4E73A3 !important;
-    box-shadow: 0 0 0 1.5px #4E73A3 !important;
+    border-color: #003A70 !important;
+    box-shadow: 0 0 0 1.5px #003A70 !important;
 }
 
 .stTextInput label, .stSelectbox label, .stDateInput label,
 .stTextArea label, .stFileUploader label,
 .stTextInput label p, .stSelectbox label p, .stDateInput label p,
 .stTextArea label p, .stFileUploader label p {
-    color: #334155 !important;
+    color: #1E293B !important;
     font-weight: 600 !important;
-    font-size: 13px !important;
+    font-size: 13.5px !important;
     margin-bottom: 4px !important;
 }
 
@@ -509,7 +533,7 @@ table.ucn-table tbody tr.ucn-row-selected {
     width: 24px;
     height: 24px;
     border-radius: 999px;
-    background: #4E73A3;
+    background: #003A70;
     color: #FFFFFF;
     font-size: 12px;
     font-weight: 700;
@@ -579,7 +603,7 @@ table.ucn-table tbody tr.ucn-row-selected {
 .ucn-soft-box-title {
     font-size: 15px;
     font-weight: 700;
-    color: #4E73A3;
+    color: #003A70;
     margin-bottom: 3px;
 }
 .ucn-soft-box-sub {
@@ -804,7 +828,7 @@ def parsear_fecha_flexible(valor):
     return None
 
 # ==============================================================================
-# COMPONENTES DE LAYOUT REUTILIZABLES (ENCABEZADO LIMPIO + PÍLDORAS ECIEM)
+# COMPONENTES DE LAYOUT REUTILIZABLES
 # ==============================================================================
 def brand_logos_html() -> str:
     logo_img = (
@@ -870,7 +894,6 @@ def render_banner(titulo: str, subtitulo: str):
     )
 
 def render_eciem_nav_pills(total_sol: int = 0, en_proc: int = 0):
-    """Barra de navegación tipo píldora inspirada en el portal oficial ECIEM."""
     es_secretaria = st.session_state.usuario["rol"] == "Secretaría"
     pag = st.session_state.pagina
 
@@ -930,11 +953,11 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 # ==============================================================================
-# PANTALLA 01: INICIAR SESIÓN
+# PANTALLA 01: INICIAR SESIÓN (BARRA BLANCA FIJA ARRIBA + TARJETA BLANCA SÓLIDA)
 # ==============================================================================
 def render_login():
     fondo_css = (
-        f"linear-gradient(90deg, rgba(0, 45, 114, 0.88) 0%, rgba(0, 58, 112, 0.76) 52%, rgba(0, 58, 112, 0.62) 100%), url('{FONDO_CAMPUS_B64}')"
+        f"linear-gradient(90deg, rgba(0, 45, 114, 0.88) 0%, rgba(0, 58, 112, 0.78) 52%, rgba(0, 58, 112, 0.65) 100%), url('{FONDO_CAMPUS_B64}')"
         if FONDO_CAMPUS_B64
         else "linear-gradient(135deg, #002D72 0%, #003A70 55%, #004D99 100%)"
     )
@@ -949,28 +972,33 @@ def render_login():
             background-attachment: fixed !important;
         }}
         .block-container {{
-            max-width: 100% !important;
-            padding-top: 0 !important;
-            padding-bottom: 1.5rem !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
+            max-width: 1240px !important;
+            padding-top: 96px !important;
+            padding-bottom: 2rem !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
         }}
-        .ucn-login-fullbar {{
+        .ucn-login-fixedbar {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 68px;
+            z-index: 9999;
             background: #FFFFFF;
             border-bottom: 1px solid #E2E8F0;
-            padding: 12px 48px;
+            padding: 0 44px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            width: 100%;
-            box-shadow: 0 2px 8px rgba(0, 25, 65, 0.08);
-            margin-bottom: 36px;
+            box-shadow: 0 2px 10px rgba(0, 25, 65, 0.08);
+            box-sizing: border-box;
         }}
         .ucn-login-left-col {{
             min-height: 450px;
             border-right: 4px solid #E6B800;
             padding-right: 36px;
-            padding-left: 16px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -1004,7 +1032,7 @@ def render_login():
         }}
         </style>
 
-        <div class="ucn-login-fullbar">
+        <div class="ucn-login-fixedbar">
             <div class="ucn-brand-group">
                 {brand_logos_html()}
             </div>
@@ -1014,7 +1042,7 @@ def render_login():
         unsafe_allow_html=True,
     )
 
-    _, col_left, col_right, _ = st.columns([0.5, 3.8, 5.2, 0.5], gap="large", vertical_alignment="center")
+    col_left, col_right = st.columns([4.2, 5.8], gap="large", vertical_alignment="center")
 
     with col_left:
         st.markdown(
@@ -1033,8 +1061,9 @@ def render_login():
         with st.container(border=True):
             st.markdown(
                 """
-                <div style="font-size:26px;font-weight:700;color:#1E293B;margin-bottom:4px;">Iniciar sesión</div>
-                <div style="font-size:14px;color:#64748B;margin-bottom:18px;">Selecciona tu perfil para continuar.</div>
+                <span class="ucn-solid-card"></span>
+                <div style="font-size:26px;font-weight:700;color:#0F172A;margin-bottom:4px;">Iniciar sesión</div>
+                <div style="font-size:14px;color:#475569;margin-bottom:18px;">Selecciona tu perfil para continuar.</div>
                 """,
                 unsafe_allow_html=True,
             )
@@ -1078,7 +1107,7 @@ def render_login():
                     type="password",
                     placeholder="Ingresa tu contraseña",
                 )
-                st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
                 ingresar = st.form_submit_button("Ingresar", type="primary", use_container_width=True)
 
             if ingresar:
@@ -1253,9 +1282,10 @@ def render_registrar_solicitud():
         with st.container(border=True):
             st.markdown(
                 f"""
+                <span class="ucn-solid-card"></span>
                 <div style="margin-bottom:10px;">{badge_estado_html('En proceso')}</div>
                 <div style="font-size:19px;font-weight:700;color:#1E293B;margin-bottom:4px;">{esc(info['nombre_estudiante'])}</div>
-                <div style="font-size:13.5px;color:#64748B;margin-bottom:14px;">
+                <div style="font-size:13.5px;color:#475569;margin-bottom:14px;">
                     Entrega y recepción: {esc(info['fecha_entrega'].strftime('%d/%m/%Y'))} ·
                     {esc(info['nombre_archivo'])} · {len(info['detalles'])} detalle(s)
                 </div>
@@ -1301,6 +1331,7 @@ def render_registrar_solicitud():
     with st.container(border=True):
         st.markdown(
             """
+            <span class="ucn-solid-card"></span>
             <div class="ucn-step-header">
                 <span class="ucn-step-num">1</span>
                 <span class="ucn-step-title">Identificación del estudiante</span>
@@ -1360,6 +1391,7 @@ def render_registrar_solicitud():
     with st.container(border=True):
         st.markdown(
             """
+            <span class="ucn-solid-card"></span>
             <div class="ucn-step-header">
                 <span class="ucn-step-num">2</span>
                 <span class="ucn-step-title">Asignaturas y fechas de inasistencia</span>
@@ -1462,6 +1494,7 @@ def render_registrar_solicitud():
     with st.container(border=True):
         st.markdown(
             """
+            <span class="ucn-solid-card"></span>
             <div class="ucn-step-header">
                 <span class="ucn-step-num">3</span>
                 <span class="ucn-step-title">Recepción y respaldo documental</span>
@@ -1633,8 +1666,9 @@ def render_consultar_revisar():
             with st.container(border=True):
                 st.markdown(
                     """
+                    <span class="ucn-solid-card"></span>
                     <div style="font-size:17px;font-weight:700;color:#1E293B;margin-bottom:4px;">Sin resultados</div>
-                    <div style="font-size:13.5px;color:#64748B;margin-bottom:12px;">
+                    <div style="font-size:13.5px;color:#475569;margin-bottom:12px;">
                         No se encontraron solicitudes con los filtros aplicados.
                     </div>
                     """,
@@ -1722,8 +1756,9 @@ def render_consultar_revisar():
         if df_fil.empty:
             with st.container(border=True):
                 st.markdown(
+                    '<span class="ucn-solid-card"></span>'
                     '<div style="font-size:16px;font-weight:700;color:#1E293B;">Sin resultados</div>'
-                    '<div style="font-size:13px;color:#64748B;margin:4px 0 10px 0;">No se encontraron coincidencias.</div>',
+                    '<div style="font-size:13px;color:#475569;margin:4px 0 10px 0;">No se encontraron coincidencias.</div>',
                     unsafe_allow_html=True,
                 )
                 if st.button("Limpiar filtros", type="secondary"):
@@ -1791,13 +1826,14 @@ def render_consultar_revisar():
         with st.container(border=True):
             st.markdown(
                 f"""
+                <span class="ucn-solid-card"></span>
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <div style="font-size:20px;font-weight:700;color:#4E73A3;">Solicitud #{esc(sol_sel)}</div>
+                    <div style="font-size:20px;font-weight:700;color:#003A70;">Solicitud #{esc(sol_sel)}</div>
                     <div>{badge_estado_html(primera['nombre_estado'])}</div>
                 </div>
                 <div style="font-size:14px;color:#1E293B;margin-bottom:8px;">
                     <strong>{esc(primera['nombre_estudiante'])}</strong> · {esc(primera['rut_estudiante'])}<br>
-                    <span style="font-size:12.5px;color:#64748B;">{esc(primera['nombre_carrera'])}</span>
+                    <span style="font-size:12.5px;color:#475569;">{esc(primera['nombre_carrera'])}</span>
                 </div>
                 <div style="font-size:13px;color:#334155;margin-bottom:12px;">
                     {detalles_txt}
@@ -1861,10 +1897,10 @@ def render_consultar_revisar():
             st.markdown(
                 f"""
                 <div style="margin-top:12px;padding-top:10px;border-top:1px solid #F1F5F9;">
-                    <div style="font-size:12.5px;font-weight:700;color:#4E73A3;margin-bottom:4px;">
+                    <div style="font-size:12.5px;font-weight:700;color:#003A70;margin-bottom:4px;">
                         Historial de la solicitud #{esc(sol_sel)}
                     </div>
-                    <div style="font-size:12px;color:#64748B;line-height:1.45;">
+                    <div style="font-size:12px;color:#475569;line-height:1.45;">
                         <strong>{esc(f_res_txt)}</strong> · {esc(primera['nombre_funcionario'])} ({esc(primera['rol_funcionario'])}) ·
                         <strong>{esc(primera['nombre_estado'])}</strong><br>
                         {esc(primera['observacion_revision'] or 'Solicitud recibida.')}
@@ -1899,7 +1935,8 @@ def render_cargar_planilla():
         with st.container(border=True):
             st.markdown(
                 f"""
-                <div style="font-size:18px;font-weight:700;color:#4E73A3;margin-bottom:6px;">📄 {esc(res['archivo'])}</div>
+                <span class="ucn-solid-card"></span>
+                <div style="font-size:18px;font-weight:700;color:#003A70;margin-bottom:6px;">📄 {esc(res['archivo'])}</div>
                 <div style="font-size:14px;color:#334155;line-height:1.6;">
                     Las filas válidas quedaron incorporadas correctamente en el sistema.<br>
                     {f"Corrige las {res['errores']} fila(s) con observaciones antes de volver a cargarlas." if res["errores"] > 0 else "No se detectaron errores en la planilla."}
@@ -1925,6 +1962,7 @@ def render_cargar_planilla():
     periodo_opciones = {p["nombre_periodo"]: p["id_periodo"] for p in periodos}
 
     with st.container(border=True):
+        st.markdown('<span class="ucn-solid-card"></span>', unsafe_allow_html=True)
         c1, c2 = st.columns([2.2, 1.0], gap="large")
         with c1:
             archivo = st.file_uploader(
