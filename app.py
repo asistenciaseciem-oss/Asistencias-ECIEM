@@ -42,23 +42,33 @@ CARRERAS_OFICIALES = [
     "Ingeniería en Información y Control de Gestión",
 ]
 
+NIVELES_MAPA = {
+    "Nivel 1 (1° Semestre)": 1,
+    "Nivel 2 (2° Semestre)": 2,
+    "Nivel 3 (3° Semestre)": 3,
+    "Nivel 4 (4° Semestre)": 4,
+    "Nivel 5 (5° Semestre)": 5,
+    "Nivel 6 (6° Semestre)": 6,
+}
+
 # ==============================================================================
-# ESTILOS CSS (TARJETAS BLANCAS SÓLIDAS + BOTONES UCN + SIN FRANJAS SUPERIORES)
+# ESTILOS CSS (CONTRASTE GARANTIZADO EN TODOS LOS CONTROLES + ESTILO ECIEM)
 # ==============================================================================
 CSS_BASE = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-:root {
+:root, html, body, .stApp, [data-testid="stAppViewContainer"] {
     color-scheme: light !important;
+    --primary-color: #003A70 !important;
+    --background-color: #F5F8FC !important;
+    --secondary-background-color: #FFFFFF !important;
+    --text-color: #0F172A !important;
     --ucn-navy-dark: #002D72;
     --ucn-navy: #003A70;
     --eciem-slate: #4E73A3;
     --eciem-pill-bg: #EEF3F8;
     --ucn-gold: #E6B800;
-    --ucn-text: #1E293B;
-    --ucn-muted: #475569;
-    --ucn-border: #E2E8F0;
 }
 
 /* Ocultar chrome nativo de Streamlit y sidebar sin dejar espacio superior */
@@ -75,12 +85,11 @@ header[data-testid="stHeader"],
 
 html, body, [class*="css"], .stApp {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    color: #1E293B !important;
+    color: #0F172A !important;
     margin: 0 !important;
     padding: 0 !important;
 }
 
-/* Eliminar padding superior por defecto del contenedor principal de Streamlit */
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"],
 section.main {
@@ -88,7 +97,6 @@ section.main {
     margin-top: 0 !important;
 }
 
-/* Fondo general limpio estilo portal ECIEM */
 .stApp {
     background: #F5F8FC !important;
 }
@@ -102,7 +110,7 @@ section.main {
 }
 
 /* ==========================================================================
-   TARJETAS BLANCAS SÓLIDAS (COMPATIBLE CON STREAMLIT 1.38 A 1.67+)
+   TARJETAS BLANCAS SÓLIDAS
    ========================================================================== */
 div[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .ucn-solid-card),
 div[data-testid="stVerticalBlock"]:has(> .element-container .ucn-solid-card),
@@ -110,12 +118,12 @@ div[data-testid="stVerticalBlock"]:has(> .element-container .ucn-solid-card),
     background-color: #FFFFFF !important;
     border: 1px solid #DCE5F0 !important;
     border-radius: 16px !important;
-    padding: 1.6rem 1.8rem !important;
-    box-shadow: 0 10px 30px rgba(0, 28, 70, 0.12) !important;
+    padding: 1.5rem 1.75rem !important;
+    box-shadow: 0 8px 26px rgba(0, 28, 70, 0.08) !important;
 }
 
 /* ==========================================================================
-   ENCABEZADO SUPERIOR LIMPIO (SIN CAJAS ANIDADAS)
+   ENCABEZADO SUPERIOR LIMPIO
    ========================================================================== */
 .ucn-header-bar {
     background: #FFFFFF;
@@ -183,7 +191,7 @@ div[data-testid="stVerticalBlock"]:has(> .element-container .ucn-solid-card),
 }
 
 /* ==========================================================================
-   BANNER INSTITUCIONAL ESTILIZADO
+   BANNER INSTITUCIONAL
    ========================================================================== */
 .ucn-banner {
     background: linear-gradient(100deg, #002D72 0%, #004488 65%, #1E5A99 100%);
@@ -223,7 +231,7 @@ div[data-testid="stVerticalBlock"]:has(> .element-container .ucn-solid-card),
 }
 
 /* ==========================================================================
-   BOTONES TIPO PÍLDORA ECIEM / UCN (INCLUYE FORM SUBMIT BUTTONS)
+   BOTONES TIPO PÍLDORA ECIEM / UCN
    ========================================================================== */
 div.stButton > button,
 div.stDownloadButton > button,
@@ -233,13 +241,12 @@ div.stFormSubmitButton > button {
     height: 42px !important;
     font-weight: 600 !important;
     font-size: 13.5px !important;
-    padding: 0 22px !important;
+    padding: 0 20px !important;
     transition: all 0.16s ease !important;
     box-shadow: none !important;
     margin: 0 !important;
 }
 
-/* Botón primario azul UCN (normales y de formulario) */
 div.stButton > button[kind="primary"],
 div.stButton > button[data-testid="stBaseButton-primary"],
 div.stDownloadButton > button[kind="primary"],
@@ -261,14 +268,13 @@ div.stFormSubmitButton > button[data-testid="stBaseButton-primaryFormSubmit"]:ho
     color: #FFFFFF !important;
 }
 
-/* Botón secundario (píldora suave ECIEM #EEF3F8) */
 div.stButton > button[kind="secondary"],
 div.stButton > button[data-testid="stBaseButton-secondary"],
 div.stDownloadButton > button[kind="secondary"],
 div.stFormSubmitButton > button[kind="secondary"] {
     background-color: #EEF3F8 !important;
     border: 1px solid #CBD5E1 !important;
-    color: #1E293B !important;
+    color: #0F172A !important;
 }
 div.stButton > button[kind="secondary"]:hover,
 div.stButton > button[data-testid="stBaseButton-secondary"]:hover {
@@ -278,36 +284,23 @@ div.stButton > button[data-testid="stBaseButton-secondary"]:hover {
 }
 
 /* ==========================================================================
-   CONTRASTE NÍTIDO EN INPUTS, SELECTS Y DATEPICKERS
+   CONTRASTE NÍTIDO FORZADO EN SELECTBOX, DATEINPUT, TEXTINPUT Y CALENDARIO
    ========================================================================== */
-.stTextInput > div > div,
-.stDateInput > div > div,
-.stSelectbox > div > div,
-.stTextArea > div > div,
-div[data-baseweb="input"],
-div[data-baseweb="input"] > div,
-div[data-baseweb="base-input"],
-div[data-baseweb="select"],
-div[data-baseweb="select"] > div {
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+[data-testid="stDateInput"] div[data-baseweb="input"] > div,
+[data-testid="stTextInput"] div[data-baseweb="input"] > div,
+[data-testid="stTextArea"] textarea {
     background-color: #FFFFFF !important;
-    border-color: #CBD5E1 !important;
-}
-
-div[data-baseweb="input"] > div,
-div[data-baseweb="select"] > div,
-textarea {
     border: 1px solid #CBD5E1 !important;
     border-radius: 10px !important;
     min-height: 42px !important;
 }
 
-div[data-baseweb="input"] input,
-div[data-baseweb="select"] span,
-div[data-baseweb="select"] div[value],
-div[data-baseweb="select"] div,
-[data-testid="stDateInput"] input,
-[data-testid="stTextInput"] input,
-textarea {
+/* Todos los textos internos de selectbox, dateinput, textinput y textarea */
+[data-testid="stSelectbox"] div[data-baseweb="select"] *,
+[data-testid="stDateInput"] div[data-baseweb="input"] *,
+[data-testid="stTextInput"] div[data-baseweb="input"] input,
+[data-testid="stTextArea"] textarea {
     color: #0F172A !important;
     -webkit-text-fill-color: #0F172A !important;
     opacity: 1 !important;
@@ -315,31 +308,44 @@ textarea {
     font-weight: 500 !important;
 }
 
-div[data-baseweb="input"] input::placeholder,
-textarea::placeholder {
+/* Placeholders visibles en gris medio */
+[data-testid="stTextInput"] input::placeholder,
+[data-testid="stTextArea"] textarea::placeholder {
     color: #64748B !important;
     -webkit-text-fill-color: #64748B !important;
     opacity: 1 !important;
     font-weight: 400 !important;
 }
 
-div[data-baseweb="select"] svg,
-div[data-baseweb="input"] svg {
-    fill: #475569 !important;
-    color: #475569 !important;
+/* Flechas desplegables e íconos de calendario visibles */
+[data-testid="stSelectbox"] svg,
+[data-testid="stDateInput"] svg,
+[data-testid="stTextInput"] svg {
+    fill: #334155 !important;
+    color: #334155 !important;
+    opacity: 1 !important;
 }
 
+/* Menús desplegables y calendario emergente */
 div[data-baseweb="popover"],
 div[data-baseweb="popover"] > div,
 ul[role="listbox"],
-ul[role="listbox"] li {
+ul[role="listbox"] li,
+ul[role="listbox"] li *,
+div[data-baseweb="calendar"],
+div[data-baseweb="calendar"] * {
     background-color: #FFFFFF !important;
     color: #0F172A !important;
+    -webkit-text-fill-color: #0F172A !important;
+    opacity: 1 !important;
 }
 ul[role="listbox"] li:hover,
-ul[role="listbox"] li[aria-selected="true"] {
+ul[role="listbox"] li:hover *,
+ul[role="listbox"] li[aria-selected="true"],
+ul[role="listbox"] li[aria-selected="true"] * {
     background-color: #EEF3F8 !important;
     color: #003A70 !important;
+    -webkit-text-fill-color: #003A70 !important;
     font-weight: 600 !important;
 }
 
@@ -350,16 +356,19 @@ textarea:focus {
     box-shadow: 0 0 0 1.5px #003A70 !important;
 }
 
+/* Etiquetas de campos */
 .stTextInput label, .stSelectbox label, .stDateInput label,
 .stTextArea label, .stFileUploader label,
 .stTextInput label p, .stSelectbox label p, .stDateInput label p,
 .stTextArea label p, .stFileUploader label p {
     color: #1E293B !important;
+    -webkit-text-fill-color: #1E293B !important;
     font-weight: 600 !important;
     font-size: 13.5px !important;
     margin-bottom: 4px !important;
 }
 
+/* File uploader claro */
 [data-testid="stFileUploader"] section,
 [data-testid="stFileUploaderDropzone"] {
     background-color: #F8FAFC !important;
@@ -371,16 +380,18 @@ textarea:focus {
 [data-testid="stFileUploaderDropzone"] span,
 [data-testid="stFileUploaderDropzone"] div {
     color: #475569 !important;
+    -webkit-text-fill-color: #475569 !important;
 }
 [data-testid="stFileUploaderDropzone"] button {
     background-color: #FFFFFF !important;
     color: #003A70 !important;
+    -webkit-text-fill-color: #003A70 !important;
     border: 1px solid #CBD5E1 !important;
     border-radius: 999px !important;
 }
 
 /* ==========================================================================
-   TARJETAS KPI (ESTILO MODERNO ECIEM)
+   TARJETAS KPI
    ========================================================================== */
 .ucn-kpi-card {
     background: #FFFFFF;
@@ -422,7 +433,7 @@ textarea:focus {
 }
 
 /* ==========================================================================
-   TABLAS MODERNAS SIN BORDES VERTICALES (ESTILO ECIEM)
+   TABLAS MODERNAS SIN BORDES VERTICALES
    ========================================================================== */
 .ucn-section-title {
     font-size: 16.5px;
@@ -953,7 +964,7 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 # ==============================================================================
-# PANTALLA 01: INICIAR SESIÓN (BARRA BLANCA FIJA ARRIBA + TARJETA BLANCA SÓLIDA)
+# PANTALLA 01: INICIAR SESIÓN
 # ==============================================================================
 def render_login():
     fondo_css = (
@@ -1248,7 +1259,7 @@ def render_inicio():
     )
 
 # ==============================================================================
-# PANTALLA 03: REGISTRAR SOLICITUD (3 PASOS LIMPIOS)
+# PANTALLA 03: REGISTRAR SOLICITUD (CARRERA -> NIVEL -> ASIGNATURA -> PARALELO)
 # ==============================================================================
 def render_registrar_solicitud():
     if st.session_state.usuario["rol"] != "Secretaría":
@@ -1272,6 +1283,7 @@ def render_registrar_solicitud():
 
         filas_det = "".join(
             f"<tr><td>{esc(d['carrera'])}</td>"
+            f"<td>Nivel {esc(d['nivel'])}</td>"
             f"<td>{esc(d['nombre_asignatura'])}</td>"
             f"<td><strong>{esc(d['paralelo'])}</strong></td>"
             f"<td>{esc(d['fecha_inicio'].strftime('%d/%m/%Y'))}</td>"
@@ -1291,7 +1303,7 @@ def render_registrar_solicitud():
                 </div>
                 <div class="ucn-table-wrap" style="margin-bottom:0;">
                     <table class="ucn-table">
-                        <thead><tr><th>Carrera</th><th>Asignatura</th><th>Paralelo</th><th>Desde</th><th>Hasta</th></tr></thead>
+                        <thead><tr><th>Carrera</th><th>Nivel</th><th>Asignatura</th><th>Paralelo</th><th>Desde</th><th>Hasta</th></tr></thead>
                         <tbody>{filas_det}</tbody>
                     </table>
                 </div>
@@ -1387,7 +1399,7 @@ def render_registrar_solicitud():
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA
+    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA (CARRERA -> NIVEL -> ASIGNATURA -> PARALELO)
     with st.container(border=True):
         st.markdown(
             """
@@ -1395,28 +1407,36 @@ def render_registrar_solicitud():
             <div class="ucn-step-header">
                 <span class="ucn-step-num">2</span>
                 <span class="ucn-step-title">Asignaturas y fechas de inasistencia</span>
-                <span class="ucn-step-sub">Filtra por carrera · Paralelo libre</span>
+                <span class="ucn-step-sub">Carrera → Nivel (1° a 6°) → Asignatura · Paralelo libre</span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        s1, s2, s3 = st.columns([1.25, 1.50, 0.65], gap="medium")
+        s1, s2, s3, s4 = st.columns([1.30, 0.95, 1.45, 0.65], gap="small")
         with s1:
             carrera_sel = st.selectbox("Carrera", CARRERAS_OFICIALES, key="reg_carrera_sel")
-
-        asig_filtradas = [a for a in asignaturas if a.get("carrera") == carrera_sel] or asignaturas
-        mapa_asig = {
-            f"Sem. {a.get('semestre', 1)} · {a['nombre_asignatura']}": a
-            for a in asig_filtradas
-        }
         with s2:
-            asig_label = st.selectbox("Asignatura (1° a 3° año)", list(mapa_asig.keys()))
+            nivel_label = st.selectbox("Nivel (Semestre)", list(NIVELES_MAPA.keys()), key="reg_nivel_sel")
+            nivel_num = NIVELES_MAPA[nivel_label]
 
+        asig_filtradas = [
+            a for a in asignaturas
+            if a.get("carrera") == carrera_sel and int(a.get("semestre", 1)) == nivel_num
+        ]
+        if not asig_filtradas:
+            asig_filtradas = [a for a in asignaturas if a.get("carrera") == carrera_sel] or asignaturas
+
+        mapa_asig = {a["nombre_asignatura"]: a for a in asig_filtradas}
         with s3:
+            asig_label = st.selectbox("Asignatura del nivel", list(mapa_asig.keys()))
+
+        with s4:
             paralelo_input = st.text_input("Paralelo", placeholder="Ej.: A, B, 1")
 
-        d1, d2, d3 = st.columns([1.0, 1.0, 1.0], gap="medium", vertical_alignment="bottom")
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+
+        d1, d2, d3 = st.columns([1.0, 1.0, 1.15], gap="medium", vertical_alignment="bottom")
         with d1:
             f_inicio = st.date_input("Fecha de inicio", value=date.today(), format="DD/MM/YYYY")
         with d2:
@@ -1454,6 +1474,7 @@ def render_registrar_solicitud():
                         {
                             "id_paralelo": asig_obj["id_paralelo"],
                             "carrera": carrera_sel,
+                            "nivel": nivel_num,
                             "codigo_asignatura": asig_obj["codigo_asignatura"],
                             "nombre_asignatura": asig_obj["nombre_asignatura"],
                             "paralelo": par_limpio,
@@ -1467,6 +1488,7 @@ def render_registrar_solicitud():
             filas_p = "".join(
                 f"<tr><td><strong>{i+1}</strong></td>"
                 f"<td>{esc(d['carrera'])}</td>"
+                f"<td>Nivel {esc(d['nivel'])}</td>"
                 f"<td>{esc(d['nombre_asignatura'])}</td>"
                 f"<td><strong>{esc(d['paralelo'])}</strong></td>"
                 f"<td>{esc(d['fecha_inicio'].strftime('%d/%m/%Y'))}</td>"
@@ -1477,7 +1499,7 @@ def render_registrar_solicitud():
                 f"""
                 <div class="ucn-table-wrap" style="margin-top:12px;">
                     <table class="ucn-table">
-                        <thead><tr><th>#</th><th>Carrera</th><th>Asignatura</th><th>Paralelo</th><th>Desde</th><th>Hasta</th></tr></thead>
+                        <thead><tr><th>#</th><th>Carrera</th><th>Nivel</th><th>Asignatura</th><th>Paralelo</th><th>Desde</th><th>Hasta</th></tr></thead>
                         <tbody>{filas_p}</tbody>
                     </table>
                 </div>
@@ -1544,6 +1566,7 @@ def render_registrar_solicitud():
                 {
                     "id_paralelo": asig_obj["id_paralelo"],
                     "carrera": carrera_sel,
+                    "nivel": nivel_num,
                     "codigo_asignatura": asig_obj["codigo_asignatura"],
                     "nombre_asignatura": asig_obj["nombre_asignatura"],
                     "paralelo": par_limpio,
@@ -1689,7 +1712,7 @@ def render_consultar_revisar():
                 f"<td><span class='ucn-sol-id'>#{esc(r['numero_solicitud'])}</span></td>"
                 f"<td><strong>{esc(r['nombre_estudiante'])}</strong></td>"
                 f"<td>📅 {esc(f_ent)}</td>"
-                f"<td>{esc(r['nombre_asignatura'])}</td>"
+                f"<td>Nivel {esc(r['semestre'])} · {esc(r['nombre_asignatura'])}</td>"
                 f"<td><strong>{esc(r['paralelo'])}</strong></td>"
                 f"<td>{esc(rango)}</td>"
                 f"<td>{badge_estado_html(r['nombre_estado'])}</td>"
@@ -1816,7 +1839,7 @@ def render_consultar_revisar():
         primera = filas_sol.iloc[0]
 
         detalles_txt = "<br>".join(
-            f"<strong>{esc(r['nombre_asignatura'])} (Par. {esc(r['paralelo'])})</strong> · "
+            f"<strong>Nivel {esc(r['semestre'])} · {esc(r['nombre_asignatura'])} (Par. {esc(r['paralelo'])})</strong> · "
             f"{esc(formatear_rango_inasistencia(r['fecha_inicio_ausencia'], r['fecha_termino_ausencia']))}"
             for _, r in filas_sol.iterrows()
         )
