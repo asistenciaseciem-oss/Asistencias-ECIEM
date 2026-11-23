@@ -304,7 +304,6 @@ html body div[data-baseweb="select"] div {
     color: #0F172A !important;
 }
 
-/* Borde único limpio en cada campo */
 html body [data-testid="stTextInput"] div[data-baseweb="input"] > div,
 html body [data-testid="stDateInput"] div[data-baseweb="input"] > div,
 html body [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
@@ -315,14 +314,12 @@ html body [data-testid="stTextArea"] textarea {
     background-color: #FFFFFF !important;
 }
 
-/* Eliminar doble borde en contenedores internos */
 html body div[data-baseweb="base-input"],
 html body div[data-baseweb="base-input"] > div,
 html body div[data-baseweb="select"] > div > div {
     border: none !important;
 }
 
-/* Texto de entrada y opciones seleccionadas en negro pizarra #0F172A */
 html body [data-testid="stTextInput"] input,
 html body [data-testid="stDateInput"] input,
 html body [data-testid="stSelectbox"] span,
@@ -340,7 +337,6 @@ html body div[data-baseweb="select"] div {
     font-weight: 500 !important;
 }
 
-/* Selección de texto dentro de inputs en azul UCN */
 html body input::selection,
 html body textarea::selection {
     background-color: #003A70 !important;
@@ -348,7 +344,6 @@ html body textarea::selection {
     -webkit-text-fill-color: #FFFFFF !important;
 }
 
-/* Placeholders visibles */
 html body input::placeholder,
 html body textarea::placeholder {
     color: #64748B !important;
@@ -357,7 +352,6 @@ html body textarea::placeholder {
     font-weight: 400 !important;
 }
 
-/* Íconos de flechas y calendario */
 html body [data-testid="stSelectbox"] svg,
 html body [data-testid="stDateInput"] svg,
 html body [data-testid="stTextInput"] svg,
@@ -368,7 +362,6 @@ html body div[data-baseweb="input"] svg {
     opacity: 1 !important;
 }
 
-/* Borde activo al hacer foco */
 html body div[data-baseweb="input"] > div:focus-within,
 html body div[data-baseweb="select"] > div:focus-within,
 html body [data-testid="stTextArea"] textarea:focus {
@@ -414,7 +407,6 @@ html body div[data-baseweb="popover"] svg {
     color: #003A70 !important;
 }
 
-/* Día seleccionado en el calendario y opción activa en listas */
 html body div[data-baseweb="calendar"] [aria-selected="true"],
 html body div[data-baseweb="calendar"] [aria-selected="true"] *,
 html body ul[role="listbox"] li:hover,
@@ -434,7 +426,6 @@ html body div[data-baseweb="calendar"] [role="gridcell"]:hover * {
     -webkit-text-fill-color: #003A70 !important;
 }
 
-/* Etiquetas de campos */
 html body .stTextInput label,
 html body .stSelectbox label,
 html body .stDateInput label,
@@ -452,7 +443,6 @@ html body .stFileUploader label p {
     margin-bottom: 4px !important;
 }
 
-/* File uploader claro */
 html body [data-testid="stFileUploader"] section,
 html body [data-testid="stFileUploaderDropzone"] {
     background-color: #F8FAFC !important;
@@ -1061,6 +1051,7 @@ defaults = {
     "reg_nombre_est": "",
     "reg_carrera_sel": CARRERAS_OFICIALES[0],
     "ultimo_rut_autodetectado": "",
+    "limpiar_form_registro": False,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -1382,6 +1373,13 @@ def render_registrar_solicitud():
         st.session_state.pagina = "Inicio"
         st.rerun()
 
+    # Limpiar campos del formulario ANTES de instanciar los widgets
+    if st.session_state.get("limpiar_form_registro"):
+        st.session_state["reg_rut_input"] = ""
+        st.session_state["reg_nombre_est"] = ""
+        st.session_state["ultimo_rut_autodetectado"] = ""
+        st.session_state["limpiar_form_registro"] = False
+
     df_all = cargar_hechos_detallados()
     total_sol = df_all["numero_solicitud"].nunique() if not df_all.empty else 0
     en_proc = df_all[df_all["nombre_estado"] == "En proceso"]["numero_solicitud"].nunique() if not df_all.empty else 0
@@ -1457,7 +1455,7 @@ def render_registrar_solicitud():
         )
         return
 
-    # PASO 1: DATOS DEL ESTUDIANTE (INGRESO DIRECTO SIN RESTRICCIÓN DE BDD + AUTOFORMATO RUT)
+    # PASO 1: DATOS DEL ESTUDIANTE
     with st.container(border=True):
         st.markdown(
             """
@@ -1502,7 +1500,7 @@ def render_registrar_solicitud():
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA (NIVEL -> ASIGNATURA -> PARALELO)
+    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA
     with st.container(border=True):
         st.markdown(
             """
@@ -1655,6 +1653,7 @@ def render_registrar_solicitud():
 
     if cancelar_clic:
         st.session_state.detalles_pendientes = []
+        st.session_state.limpiar_form_registro = True
         st.session_state.pagina = "Inicio"
         st.rerun()
 
@@ -1693,7 +1692,6 @@ def render_registrar_solicitud():
                 st.markdown(f'<div class="ucn-strip-err">{esc(e_msg)}</div>', unsafe_allow_html=True)
             return
 
-        # Guardar/actualizar estudiante en dim_estudiante directamente sin exigir pre-registro
         rut_bd = normalizar_rut(rut_formateado)
         est_previo = mapa_estudiantes.get(rut_bd)
         supabase.table("dim_estudiante").upsert(
@@ -1737,9 +1735,7 @@ def render_registrar_solicitud():
 
         supabase.table("hechos_justificacion").insert(registros).execute()
         st.session_state.detalles_pendientes = []
-        st.session_state.reg_rut_input = ""
-        st.session_state.reg_nombre_est = ""
-        st.session_state.ultimo_rut_autodetectado = ""
+        st.session_state.limpiar_form_registro = True
         st.session_state.ultima_solicitud_guardada = {
             "numero_solicitud": num_solicitud,
             "rut_visual": rut_formateado,
