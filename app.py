@@ -3,6 +3,7 @@ import html
 import io
 import os
 import re
+import unicodedata
 from datetime import date, datetime
 import pandas as pd
 import streamlit as st
@@ -47,7 +48,6 @@ CARRERAS_OFICIALES = [
 ]
 
 ESTADOS_OFICIALES = ["En proceso", "Aceptado", "Rechazado"]
-PERIODOS_DISPONIBLES = ["2026-2", "2026-1", "2027-1"]
 
 NIVELES_MAPA = {
     "Nivel 1 (1° Semestre)": 1,
@@ -57,6 +57,39 @@ NIVELES_MAPA = {
     "Nivel 5 (5° Semestre)": 5,
     "Nivel 6 (6° Semestre)": 6,
 }
+
+# ==============================================================================
+# PERÍODOS DINÁMICOS (ESCALABLE EN EL TIEMPO SIN TOCAR CÓDIGO)
+# ==============================================================================
+def periodo_vigente_actual() -> str:
+    hoy = date.today()
+    sem = 1 if hoy.month <= 7 else 2
+    return f"{hoy.year}-{sem}"
+
+def obtener_periodos_dinamicos(df_hechos: pd.DataFrame = None, ofertas: list = None) -> list:
+    hoy = date.today()
+    vigente = periodo_vigente_actual()
+    sem_actual = 1 if hoy.month <= 7 else 2
+    siguiente = f"{hoy.year}-2" if sem_actual == 1 else f"{hoy.year + 1}-1"
+    anterior = f"{hoy.year - 1}-2" if sem_actual == 1 else f"{hoy.year}-1"
+
+    periodos_set = {vigente, siguiente, anterior}
+    if df_hechos is not None and not df_hechos.empty and "periodo" in df_hechos.columns:
+        periodos_set.update(p for p in df_hechos["periodo"].dropna().astype(str).tolist() if p.strip())
+    if ofertas:
+        periodos_set.update(str(o["periodo"]) for o in ofertas if o.get("periodo"))
+
+    def clave_orden(p_str: str):
+        m = re.match(r"^(\d{4})-(\d+)$", p_str.strip())
+        if m:
+            return (int(m.group(1)), int(m.group(2)))
+        return (0, 0)
+
+    ordenados = sorted(periodos_set, key=clave_orden, reverse=True)
+    if vigente in ordenados:
+        ordenados.remove(vigente)
+        ordenados.insert(0, vigente)
+    return ordenados
 
 # ==============================================================================
 # ESTILOS CSS (MODO CLARO BLINDADO + ESTÉTICA OFICIAL ECIEM UCN)
@@ -239,7 +272,7 @@ html body div.stFormSubmitButton > button {
     height: 42px !important;
     font-weight: 600 !important;
     font-size: 13.5px !important;
-    padding: 0 20px !important;
+    padding: 0 18px !important;
     transition: all 0.16s ease !important;
     box-shadow: none !important;
     margin: 0 !important;
@@ -720,10 +753,22 @@ def get_supabase_client() -> Client:
 supabase: Client = get_supabase_client()
 
 # ==============================================================================
-# UTILIDADES DE RUT, EXCEL INSTITUCIONAL, ANTI-DUPLICADOS Y BASE DE DATOS
+# UTILIDADES DE TEXTO, RUT, DOCENTES, OFERTA SEMESTRAL Y EXCEL INSTITUCIONAL
 # ==============================================================================
 def esc(val) -> str:
     return html.escape("" if val is None else str(val))
+
+def normalizar_texto_clave(texto: str) -> str:
+    """Quita tildes, prefijos 'Prof.' y espacios extra para emparejar nombres de docentes."""
+    t = str(texto or "").strip().lower()
+    t = re.sub(r"^(prof\.?|profesor|profesora|dr\.?|dra\.?|mg\.?)\s+", "", t)
+    t = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"\s+", " ", t).strip()
+
+def generar_email_docente_auto(nombre_docente: str) -> str:
+    clave = normalizar_texto_clave(nombre_docente)
+    slug = re.sub(r"[^a-z0-9]+", ".", clave).strip(".") or "docente"
+    return f"{slug}@ucn.cl"
 
 def badge_estado_html(estado: str) -> str:
     e = (estado or "").strip()
@@ -762,10 +807,7 @@ def formatear_rut_visual(rut_str: str) -> str:
     if len(limpio) < 2:
         return str(rut_str or "").strip().upper()
     cuerpo, dv = limpio[:-1], limpio[-1]
-    if cuerpo.isdigit():
-        cuerpo_puntos = f"{int(cuerpo):,}".replace(",", ".")
-    else:
-        cuerpo_puntos = cuerpo
+    cuerpo_puntos = f"{int(cuerpo):,}".replace(",", ".") if cuerpo.isdigit() else cuerpo
     return f"{cuerpo_puntos}-{dv}"
 
 def validar_rut_chileno(rut_str: str) -> bool:
@@ -824,7 +866,65 @@ def cargar_catalogos():
         .data
     )
     estudiantes = supabase.table("dim_estudiante").select("*").execute().data
-    return asignaturas, estudiantes
+    docentes = supabase.table("dim_docente").select("*").order("nombre_docente").execute().data
+    ofertas = (
+        supabase.table("oferta_docente")
+        .select("id_oferta, periodo, id_asignatura, paralelo, id_docente, dim_asignatura(carrera, semestre, nombre_asignatura), dim_docente(nombre_docente, email)")
+        .execute()
+        .data
+    )
+    return asignaturas, estudiantes, docentes, ofertas
+
+def asegurar_docente_y_oferta(
+    nombre_docente: str,
+    periodo: str,
+    id_asignatura: int,
+    paralelo: str,
+    docentes_cache: list,
+):
+    nom_limpio = str(nombre_docente or "").strip()
+    if not nom_limpio:
+        return None
+
+    clave_busq = normalizar_texto_clave(nom_limpio)
+    doc_encontrado = next(
+        (d for d in docentes_cache if normalizar_texto_clave(d["nombre_docente"]) == clave_busq),
+        None,
+    )
+
+    if doc_encontrado:
+        id_doc = doc_encontrado["id_docente"]
+    else:
+        email_auto = generar_email_docente_auto(nom_limpio)
+        if any(d["email"].lower() == email_auto for d in docentes_cache):
+            email_auto = email_auto.replace("@ucn.cl", f".{len(docentes_cache)+1}@ucn.cl")
+        ins = (
+            supabase.table("dim_docente")
+            .insert(
+                {
+                    "nombre_docente": nom_limpio,
+                    "email": email_auto,
+                    "contrasena": "docente2026",
+                    "activo": True,
+                }
+            )
+            .execute()
+        )
+        nuevo_doc = ins.data[0]
+        docentes_cache.append(nuevo_doc)
+        id_doc = nuevo_doc["id_docente"]
+
+    par_norm = str(paralelo or "A").strip().upper()
+    supabase.table("oferta_docente").upsert(
+        {
+            "periodo": periodo,
+            "id_asignatura": int(id_asignatura),
+            "paralelo": par_norm,
+            "id_docente": int(id_doc),
+        },
+        on_conflict="periodo,id_asignatura,paralelo",
+    ).execute()
+    return id_doc
 
 def cargar_hechos_detallados() -> pd.DataFrame:
     res = (
@@ -887,7 +987,7 @@ def cargar_hechos_detallados() -> pd.DataFrame:
                 "nombre_asignatura": nom_asig,
                 "paralelo": par_txt,
                 "estado": r.get("estado", "En proceso"),
-                "periodo": r.get("periodo", "2026-2"),
+                "periodo": r.get("periodo", periodo_vigente_actual()),
                 "id_funcionario": r["id_funcionario"],
                 "nombre_funcionario": func.get("nombre_funcionario", ""),
                 "rol_funcionario": func.get("rol", ""),
@@ -908,11 +1008,6 @@ def verificar_duplicado_o_cruce(
     f_ini: date,
     f_ter: date,
 ):
-    """
-    Revisa si ya existe un registro ACTIVO ('En proceso' o 'Aceptado') para el mismo
-    estudiante, asignatura y paralelo con fechas idénticas o solapadas.
-    Permite reingreso si el registro anterior fue 'Rechazado'.
-    """
     if df_existente.empty:
         return None
 
@@ -947,7 +1042,6 @@ def parsear_fecha_flexible(valor):
     return None
 
 def generar_excel_institucional(df_datos: pd.DataFrame, titulo_hoja: str, subtitulo: str) -> bytes:
-    """Genera un archivo .xlsx con formato institucional UCN/ECIEM listo para entregar."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Inasistencias"
@@ -1097,6 +1191,7 @@ def render_topbar(boton_izq_texto="Inicio"):
         with col_logout:
             if st.button("Cerrar sesión", key="nav_top_logout_doc", type="secondary", use_container_width=True):
                 st.session_state.usuario = None
+                st.session_state.doc_curso_activo = "TODOS"
                 st.session_state.pagina = "Inicio"
                 st.rerun()
         return
@@ -1196,7 +1291,7 @@ defaults = {
     "ultima_solicitud_guardada": None,
     "ultima_carga_confirmada": None,
     "reporte_listo": False,
-    "rep_filtros": {"periodo": "2026-2", "carrera": "Todas", "estado": "Aceptado"},
+    "rep_filtros": {"periodo": periodo_vigente_actual(), "carrera": "Todas", "estado": "Aceptado"},
     "filtro_consulta_rut": "",
     "filtro_consulta_estado": "Todos",
     "reg_rut_input": "",
@@ -1204,13 +1299,14 @@ defaults = {
     "reg_carrera_sel": CARRERAS_OFICIALES[0],
     "ultimo_rut_autodetectado": "",
     "limpiar_form_registro": False,
+    "doc_curso_activo": "TODOS",
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
 # ==============================================================================
-# PANTALLA 01: INICIAR SESIÓN (SECRETARÍA / JEFATURA / DOCENTE + REGISTRO DOCENTE)
+# PANTALLA 01: INICIAR SESIÓN (SECRETARÍA / JEFATURA / DOCENTE + REGISTRO)
 # ==============================================================================
 def render_login():
     fondo_css = (
@@ -1318,22 +1414,22 @@ def render_login():
         with st.container(border=True):
             st.markdown('<span class="ucn-solid-card"></span>', unsafe_allow_html=True)
 
-            # ---- MODO REGISTRO DE DOCENTE ----
+            # ---- REGISTRO DE DOCENTE (VINCULA AUTOMÁTICAMENTE SI YA VINO EN PLANILLA) ----
             if st.session_state.modo_registro_docente:
                 st.markdown(
                     """
                     <div style="font-size:24px;font-weight:700;color:#0F172A;margin-bottom:4px;">Registro de docente</div>
-                    <div style="font-size:13.5px;color:#475569;margin-bottom:16px;">Crea tu cuenta para consultar las inasistencias justificadas de tus cursos.</div>
+                    <div style="font-size:13.5px;color:#475569;margin-bottom:16px;">Crea o activa tu cuenta para ver automáticamente tus cursos asignados.</div>
                     """,
                     unsafe_allow_html=True,
                 )
                 with st.form("form_reg_docente", border=False):
-                    nom_doc = st.text_input("Nombre completo", placeholder="Ej.: Prof. Carlos Silva")
-                    mail_doc = st.text_input("Correo institucional", placeholder="nombre.apellido@ucn.cl")
+                    nom_doc = st.text_input("Nombre completo", placeholder="Ej.: Carlos Silva")
+                    mail_doc = st.text_input("Correo institucional", placeholder="carlos.silva@ucn.cl")
                     pass_doc = st.text_input("Contraseña", type="password", placeholder="Mínimo 6 caracteres")
                     pass_doc2 = st.text_input("Confirmar contraseña", type="password", placeholder="Repite la contraseña")
                     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
-                    crear_btn = st.form_submit_button("Crear cuenta docente", type="primary", use_container_width=True)
+                    crear_btn = st.form_submit_button("Crear / activar cuenta docente", type="primary", use_container_width=True)
 
                 if st.button("← Volver a Iniciar sesión", type="secondary", use_container_width=True):
                     st.session_state.modo_registro_docente = False
@@ -1356,24 +1452,36 @@ def render_login():
                             st.markdown(f'<div class="ucn-strip-err">{esc(e)}</div>', unsafe_allow_html=True)
                         return
 
-                    existe = supabase.table("dim_docente").select("id_docente").eq("email", mail_clean).execute()
-                    if existe.data:
-                        st.markdown('<div class="ucn-strip-err">Ya existe una cuenta docente registrada con ese correo.</div>', unsafe_allow_html=True)
-                        return
+                    docentes_exist = supabase.table("dim_docente").select("*").execute().data
+                    clave_nueva = normalizar_texto_clave(nom_doc)
 
-                    supabase.table("dim_docente").insert(
-                        {
-                            "nombre_docente": nom_doc.strip(),
-                            "email": mail_clean,
-                            "contrasena": pass_doc,
-                        }
-                    ).execute()
+                    match_mail = next((d for d in docentes_exist if d["email"].lower() == mail_clean), None)
+                    match_nom = next((d for d in docentes_exist if normalizar_texto_clave(d["nombre_docente"]) == clave_nueva), None)
+
+                    if match_mail:
+                        supabase.table("dim_docente").update(
+                            {"nombre_docente": nom_doc.strip(), "contrasena": pass_doc, "activo": True}
+                        ).eq("id_docente", match_mail["id_docente"]).execute()
+                    elif match_nom:
+                        supabase.table("dim_docente").update(
+                            {"nombre_docente": nom_doc.strip(), "email": mail_clean, "contrasena": pass_doc, "activo": True}
+                        ).eq("id_docente", match_nom["id_docente"]).execute()
+                    else:
+                        supabase.table("dim_docente").insert(
+                            {
+                                "nombre_docente": nom_doc.strip(),
+                                "email": mail_clean,
+                                "contrasena": pass_doc,
+                                "activo": True,
+                            }
+                        ).execute()
+
                     st.session_state.modo_registro_docente = False
                     st.session_state.perfil_login = "Docente"
-                    st.markdown('<div class="ucn-strip-ok">Cuenta creada correctamente. Ya puedes iniciar sesión.</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="ucn-strip-ok">Cuenta docente lista. Ya puedes iniciar sesión con tu correo y contraseña.</div>', unsafe_allow_html=True)
                 return
 
-            # ---- MODO INICIO DE SESIÓN ----
+            # ---- INICIO DE SESIÓN ----
             st.markdown(
                 """
                 <div style="font-size:26px;font-weight:700;color:#0F172A;margin-bottom:4px;">Iniciar sesión</div>
@@ -1404,7 +1512,7 @@ def render_login():
             elif perfil == "Jefatura de Carrera":
                 placeholder_correo = "jc.iicg.cqbo@ucn.cl"
             else:
-                placeholder_correo = "docente@ucn.cl"
+                placeholder_correo = "carlos.silva@ucn.cl"
 
             with st.form("form_login_ucn", border=False):
                 correo = st.text_input("Correo institucional", placeholder=placeholder_correo)
@@ -1413,7 +1521,7 @@ def render_login():
                 ingresar = st.form_submit_button("Ingresar", type="primary", use_container_width=True)
 
             if perfil == "Docente":
-                if st.button("¿Primera vez? Crear cuenta docente", type="secondary", use_container_width=True):
+                if st.button("¿Primera vez? Crear o activar cuenta docente", type="secondary", use_container_width=True):
                     st.session_state.modo_registro_docente = True
                     st.rerun()
 
@@ -1426,12 +1534,15 @@ def render_login():
                 if perfil == "Docente":
                     res = (
                         supabase.table("dim_docente")
-                        .select("id_docente, nombre_docente, email, contrasena")
+                        .select("id_docente, nombre_docente, email, contrasena, activo")
                         .eq("email", mail_clean)
                         .execute()
                     )
                     if not res.data or res.data[0]["contrasena"] != contrasena:
                         st.markdown('<div class="ucn-strip-err">Correo o contraseña incorrectos.</div>', unsafe_allow_html=True)
+                        return
+                    if not res.data[0].get("activo", True):
+                        st.markdown('<div class="ucn-strip-err">Tu cuenta docente se encuentra inactiva.</div>', unsafe_allow_html=True)
                         return
                     doc = res.data[0]
                     st.session_state.usuario = {
@@ -1440,6 +1551,7 @@ def render_login():
                         "rol": "Docente",
                         "email": doc["email"],
                     }
+                    st.session_state.doc_curso_activo = "TODOS"
                     st.session_state.pagina = "Portal Docente"
                     st.rerun()
                 else:
@@ -1464,76 +1576,97 @@ def render_login():
                     st.rerun()
 
 # ==============================================================================
-# PANEL DOCENTE (SOLO LECTURA + FILTROS POR ASIGNATURA, PARALELO Y ESTUDIANTE)
+# PORTAL DOCENTE (CERO FILTROS COMPLEJOS: SOLO SUS CURSOS DEL PERÍODO EN PÍLDORAS)
 # ==============================================================================
 def render_portal_docente():
+    user = st.session_state.usuario
+    id_doc = user["id_funcionario"]
+
     render_topbar()
     render_banner(
-        "Consulta de Inasistencias Justificadas",
-        "Visualiza únicamente las inasistencias aceptadas por Jefatura de Carrera. Usa los filtros para revisar tus cursos.",
+        f"Mis Cursos · {user['nombre_funcionario']}",
+        "Visualiza directamente las inasistencias aceptadas de tus asignaturas y paralelos asignados en cada período.",
         tag="Portal Docente · Solo lectura",
     )
 
     df_all = cargar_hechos_detallados()
-    asignaturas, _ = cargar_catalogos()
+    _, _, _, ofertas = cargar_catalogos()
 
-    # El docente SOLO puede ver solicitudes ACEPTADAS
-    df_acc = df_all[df_all["estado"] == "Aceptado"].copy() if not df_all.empty else pd.DataFrame()
+    mis_ofertas = [o for o in ofertas if int(o["id_docente"]) == int(id_doc)]
+    periodos_doc = obtener_periodos_dinamicos(df_all, mis_ofertas)
 
-    with st.container(border=True):
-        st.markdown('<span class="ucn-solid-card"></span>', unsafe_allow_html=True)
-        f1, f2, f3, f4 = st.columns([0.9, 1.35, 1.45, 0.85], gap="small")
+    col_p, col_b = st.columns([1.2, 2.8], gap="medium")
+    with col_p:
+        per_sel = st.selectbox("Período académico", periodos_doc, index=0, key="doc_per_sel")
+    with col_b:
+        busq_est = st.text_input("Buscar estudiante (opcional)", placeholder="Nombre o RUT del alumno...", key="doc_busq_est")
 
-        periodos_en_datos = sorted(df_acc["periodo"].unique().tolist(), reverse=True) if not df_acc.empty else []
-        periodos_opc = ["Todos"] + sorted(list(set(PERIODOS_DISPONIBLES + periodos_en_datos)), reverse=True)
-        with f1:
-            per_sel = st.selectbox("Período", periodos_opc, index=1 if len(periodos_opc) > 1 else 0, key="doc_per")
+    ofertas_periodo = [o for o in mis_ofertas if str(o["periodo"]) == str(per_sel)]
 
-        with f2:
-            car_sel = st.selectbox("Carrera", ["Todas"] + CARRERAS_OFICIALES, key="doc_car")
+    if not ofertas_periodo:
+        st.markdown(
+            f'<div class="ucn-strip-info">No tienes asignaturas asignadas registradas en el período <strong>{esc(per_sel)}</strong>. '
+            f'Puedes cambiar el período arriba para revisar otros semestres.</div>',
+            unsafe_allow_html=True,
+        )
+        return
 
-        asig_base = [a for a in asignaturas if (car_sel == "Todas" or a["carrera"] == car_sel)]
-        nombres_asig = sorted(list({a["nombre_asignatura"] for a in asig_base}))
-        with f3:
-            asig_sel = st.selectbox("Asignatura", ["Todas"] + nombres_asig, key="doc_asig")
+    claves_mis_cursos = {(int(o["id_asignatura"]), str(o["paralelo"]).strip().upper()) for o in ofertas_periodo}
+    if not df_all.empty:
+        df_mis_acc = df_all[
+            (df_all["estado"] == "Aceptado")
+            & (df_all["periodo"] == per_sel)
+            & (
+                df_all.apply(
+                    lambda r: (int(r["id_asignatura"]), str(r["paralelo"]).strip().upper()) in claves_mis_cursos,
+                    axis=1,
+                )
+            )
+        ].copy()
+    else:
+        df_mis_acc = pd.DataFrame()
 
-        if not df_acc.empty:
-            sub_par = df_acc.copy()
-            if per_sel != "Todos":
-                sub_par = sub_par[sub_par["periodo"] == per_sel]
-            if car_sel != "Todas":
-                sub_par = sub_par[sub_par["carrera_asignatura"] == car_sel]
-            if asig_sel != "Todas":
-                sub_par = sub_par[sub_par["nombre_asignatura"] == asig_sel]
-            paralelos_disp = sorted(sub_par["paralelo"].dropna().unique().tolist())
-        else:
-            paralelos_disp = []
+    cursos_info = []
+    for o in ofertas_periodo:
+        asig_d = o.get("dim_asignatura") or {}
+        id_a = int(o["id_asignatura"])
+        par = str(o["paralelo"]).strip().upper()
+        nom_a = asig_d.get("nombre_asignatura", f"Asignatura {id_a}")
+        cnt = int(((df_mis_acc["id_asignatura"] == id_a) & (df_mis_acc["paralelo"] == par)).sum()) if not df_mis_acc.empty else 0
+        cursos_info.append({"key": f"{id_a}|{par}", "label": f"{nom_a} · Par. {par} ({cnt})", "id_asignatura": id_a, "paralelo": par, "nombre": nom_a})
 
-        with f4:
-            par_sel = st.selectbox("Paralelo", ["Todos"] + paralelos_disp, key="doc_par")
+    cursos_info = sorted(cursos_info, key=lambda x: x["label"])
+    claves_validas = {"TODOS"} | {c["key"] for c in cursos_info}
+    if st.session_state.doc_curso_activo not in claves_validas:
+        st.session_state.doc_curso_activo = "TODOS"
 
-        b_est = st.text_input("Buscar por nombre o RUT del estudiante (opcional)", placeholder="Ej.: 12.345.678-5 o Camila Rojas", key="doc_busq")
+    st.markdown('<div class="ucn-section-title" style="margin-top:8px;">Tus cursos en este período</div>', unsafe_allow_html=True)
 
-    df_fil = df_acc.copy()
-    if not df_fil.empty:
-        if per_sel != "Todos":
-            df_fil = df_fil[df_fil["periodo"] == per_sel]
-        if car_sel != "Todas":
-            df_fil = df_fil[df_fil["carrera_asignatura"] == car_sel]
-        if asig_sel != "Todas":
-            df_fil = df_fil[df_fil["nombre_asignatura"] == asig_sel]
-        if par_sel != "Todos":
-            df_fil = df_fil[df_fil["paralelo"] == par_sel]
-        if b_est.strip():
-            q_low = b_est.strip().lower()
-            q_rut_vis = formatear_rut_visual(b_est).lower()
-            df_fil = df_fil[
-                df_fil["nombre_estudiante"].str.lower().str.contains(q_low, na=False)
-                | df_fil["rut_estudiante"].str.lower().str.contains(q_rut_vis, na=False)
-                | df_fil["rut_bd"].str.lower().str.contains(normalizar_rut(b_est).lower(), na=False)
-            ]
+    botones_def = [("TODOS", f"📚 Todos mis cursos ({len(df_mis_acc)})")] + [(c["key"], c["label"]) for c in cursos_info]
+    for start in range(0, len(botones_def), 4):
+        fila = botones_def[start : start + 4]
+        cols = st.columns(len(fila), gap="small")
+        for idx_c, (ckey, clabel) in enumerate(fila):
+            activo = st.session_state.doc_curso_activo == ckey
+            if cols[idx_c].button(clabel, type="primary" if activo else "secondary", use_container_width=True, key=f"doc_pill_{per_sel}_{ckey}"):
+                st.session_state.doc_curso_activo = ckey
+                st.rerun()
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+
+    df_fil = df_mis_acc.copy()
+    if not df_fil.empty and st.session_state.doc_curso_activo != "TODOS":
+        id_sel_str, par_sel_str = st.session_state.doc_curso_activo.split("|", 1)
+        df_fil = df_fil[(df_fil["id_asignatura"] == int(id_sel_str)) & (df_fil["paralelo"] == par_sel_str)]
+
+    if not df_fil.empty and busq_est.strip():
+        q_low = busq_est.strip().lower()
+        q_rut_vis = formatear_rut_visual(busq_est).lower()
+        df_fil = df_fil[
+            df_fil["nombre_estudiante"].str.lower().str.contains(q_low, na=False)
+            | df_fil["rut_estudiante"].str.lower().str.contains(q_rut_vis, na=False)
+            | df_fil["rut_bd"].str.lower().str.contains(normalizar_rut(busq_est).lower(), na=False)
+        ]
 
     n_reg = len(df_fil)
     n_est = df_fil["rut_bd"].nunique() if not df_fil.empty else 0
@@ -1542,25 +1675,25 @@ def render_portal_docente():
     k1, k2, k3 = st.columns(3, gap="medium")
     with k1:
         st.markdown(
-            f'<div class="ucn-kpi-card green-accent"><div><div class="ucn-kpi-info-title">Justificaciones vigentes</div>'
-            f'<div class="ucn-kpi-info-sub">Según filtros aplicados</div></div><div class="ucn-kpi-number">{n_reg}</div></div>',
+            f'<div class="ucn-kpi-card green-accent"><div><div class="ucn-kpi-info-title">Justificaciones aceptadas</div>'
+            f'<div class="ucn-kpi-info-sub">Período {esc(per_sel)}</div></div><div class="ucn-kpi-number">{n_reg}</div></div>',
             unsafe_allow_html=True,
         )
     with k2:
         st.markdown(
             f'<div class="ucn-kpi-card"><div><div class="ucn-kpi-info-title">Estudiantes justificados</div>'
-            f'<div class="ucn-kpi-info-sub">Alumnos únicos en lista</div></div><div class="ucn-kpi-number">{n_est}</div></div>',
+            f'<div class="ucn-kpi-info-sub">Alumnos únicos</div></div><div class="ucn-kpi-number">{n_est}</div></div>',
             unsafe_allow_html=True,
         )
     with k3:
         st.markdown(
-            f'<div class="ucn-kpi-card gold-accent"><div><div class="ucn-kpi-info-title">Total de días justificados</div>'
-            f'<div class="ucn-kpi-info-sub">Suma inclusiva de fechas</div></div><div class="ucn-kpi-number">{n_dias}</div></div>',
+            f'<div class="ucn-kpi-card gold-accent"><div><div class="ucn-kpi-info-title">Días justificados</div>'
+            f'<div class="ucn-kpi-info-sub">Suma inclusiva</div></div><div class="ucn-kpi-number">{n_dias}</div></div>',
             unsafe_allow_html=True,
         )
 
     if df_fil.empty:
-        st.markdown('<div class="ucn-strip-info">No hay inasistencias aceptadas que coincidan con los filtros seleccionados.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ucn-strip-info">No hay inasistencias aceptadas para este curso en el período seleccionado.</div>', unsafe_allow_html=True)
         return
 
     df_fil = df_fil.sort_values(["nombre_asignatura", "paralelo", "fecha_inicio_ausencia"], ascending=[True, True, False])
@@ -1582,7 +1715,7 @@ def render_portal_docente():
 
     st.markdown(
         f"""
-        <div class="ucn-section-title">Listado de inasistencias aceptadas</div>
+        <div class="ucn-section-title">Nómina de inasistencias aceptadas</div>
         <div class="ucn-table-wrap">
             <table class="ucn-table">
                 <thead>
@@ -1613,15 +1746,15 @@ def render_portal_docente():
     )
     xlsx_bytes = generar_excel_institucional(
         df_export,
-        f"INASISTENCIAS JUSTIFICADAS · CONSULTA DOCENTE ({per_sel})",
-        f"Asignatura: {asig_sel}  |  Paralelo: {par_sel}  |  Descargado el {date.today().strftime('%d/%m/%Y')}",
+        f"NÓMINA DE INASISTENCIAS JUSTIFICADAS · {user['nombre_funcionario'].upper()} ({per_sel})",
+        f"Descargado el {date.today().strftime('%d/%m/%Y')} · Solo solicitudes aceptadas por Jefatura de Carrera",
     )
 
-    d1, _ = st.columns([2.6, 7.4])
+    d1, _ = st.columns([2.8, 7.2])
     d1.download_button(
-        label="📥 Descargar nómina en Excel (.xlsx)",
+        label="📥 Descargar mi nómina en Excel (.xlsx)",
         data=xlsx_bytes,
-        file_name=f"nomina_inasistencias_{per_sel}.xlsx",
+        file_name=f"nomina_docente_{per_sel}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         type="primary",
         use_container_width=True,
@@ -1635,7 +1768,7 @@ def render_inicio():
     es_secretaria = user["rol"] == "Secretaría"
 
     df = cargar_hechos_detallados()
-    periodo_actual = PERIODOS_DISPONIBLES[0]
+    periodo_actual = periodo_vigente_actual()
 
     total_solicitudes = df["numero_solicitud"].nunique() if not df.empty else 0
     en_proceso = (
@@ -1659,8 +1792,8 @@ def render_inicio():
             f"""
             <div class="ucn-kpi-card">
                 <div>
-                    <div class="ucn-kpi-info-title">Solicitudes del período</div>
-                    <div class="ucn-kpi-info-sub">Período académico {esc(periodo_actual)}</div>
+                    <div class="ucn-kpi-info-title">Solicitudes registradas</div>
+                    <div class="ucn-kpi-info-sub">Período vigente {esc(periodo_actual)}</div>
                 </div>
                 <div class="ucn-kpi-number">{total_solicitudes}</div>
             </div>
@@ -1692,6 +1825,7 @@ def render_inicio():
         .agg(
             Estudiante=("nombre_estudiante", "first"),
             Carrera=("nombre_carrera", "first"),
+            Período=("periodo", "first"),
             Entrega=("fecha_ingreso", "first"),
             Estado=("estado", "first"),
             Respaldo=("nombre_archivo", "first"),
@@ -1708,6 +1842,7 @@ def render_inicio():
             f"<td><span class='ucn-sol-id'>#{esc(r['numero_solicitud'])}</span></td>"
             f"<td><strong>{esc(r['Estudiante'])}</strong></td>"
             f"<td>{esc(r['Carrera'])}</td>"
+            f"<td>{esc(r['Período'])}</td>"
             f"<td>📅 {esc(fecha_txt)}</td>"
             f"<td>{badge_estado_html(r['Estado'])}</td>"
             f"<td><span class='ucn-file-link'>📄 {esc(respaldo_txt)}</span></td>"
@@ -1720,17 +1855,11 @@ def render_inicio():
             <table class="ucn-table">
                 <thead>
                     <tr>
-                        <th>Solicitud</th>
-                        <th>Estudiante</th>
-                        <th>Carrera</th>
-                        <th>Entrega</th>
-                        <th>Estado actual</th>
-                        <th>Respaldo</th>
+                        <th>Solicitud</th><th>Estudiante</th><th>Carrera</th><th>Período</th>
+                        <th>Entrega</th><th>Estado actual</th><th>Respaldo</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {''.join(filas_html)}
-                </tbody>
+                <tbody>{''.join(filas_html)}</tbody>
             </table>
         </div>
         """,
@@ -1738,7 +1867,7 @@ def render_inicio():
     )
 
 # ==============================================================================
-# PANTALLA 03: REGISTRAR SOLICITUD (ANTI-DUPLICADOS + AUTOFORMATO RUT)
+# PANTALLA 03: REGISTRAR SOLICITUD (ANTI-DUPLICADOS + AUTO-VÍNCULO DOCENTE)
 # ==============================================================================
 def on_rut_change_callback(mapa_estudiantes_ref):
     raw_val = st.session_state.get("reg_rut_input", "")
@@ -1765,6 +1894,9 @@ def render_registrar_solicitud():
         st.session_state["limpiar_form_registro"] = False
 
     df_all = cargar_hechos_detallados()
+    asignaturas, estudiantes, docentes, ofertas = cargar_catalogos()
+    periodos_opc = obtener_periodos_dinamicos(df_all, ofertas)
+
     total_sol = df_all["numero_solicitud"].nunique() if not df_all.empty else 0
     en_proc = df_all[df_all["estado"] == "En proceso"]["numero_solicitud"].nunique() if not df_all.empty else 0
 
@@ -1784,6 +1916,7 @@ def render_registrar_solicitud():
             f"<td>Nivel {esc(d['nivel'])}</td>"
             f"<td>{esc(d['nombre_asignatura'])}</td>"
             f"<td><strong>{esc(d['paralelo'])}</strong></td>"
+            f"<td>{esc(d.get('docente') or '—')}</td>"
             f"<td>{esc(d['fecha_inicio'].strftime('%d/%m/%Y'))}</td>"
             f"<td>{esc(d['fecha_termino'].strftime('%d/%m/%Y'))}</td></tr>"
             for d in info["detalles"]
@@ -1798,12 +1931,12 @@ def render_registrar_solicitud():
                     {esc(info['nombre_estudiante'])} · {esc(info['rut_visual'])}
                 </div>
                 <div style="font-size:13.5px;color:#475569;margin-bottom:14px;">
-                    Entrega y recepción: {esc(info['fecha_entrega'].strftime('%d/%m/%Y'))} ·
+                    Período {esc(info['periodo'])} · Entrega: {esc(info['fecha_entrega'].strftime('%d/%m/%Y'))} ·
                     {esc(info['nombre_archivo'])} · {len(info['detalles'])} detalle(s)
                 </div>
                 <div class="ucn-table-wrap" style="margin-bottom:0;">
                     <table class="ucn-table">
-                        <thead><tr><th>Carrera</th><th>Nivel</th><th>Asignatura</th><th>Paralelo</th><th>Desde</th><th>Hasta</th></tr></thead>
+                        <thead><tr><th>Carrera</th><th>Nivel</th><th>Asignatura</th><th>Paralelo</th><th>Docente</th><th>Desde</th><th>Hasta</th></tr></thead>
                         <tbody>{filas_det}</tbody>
                     </table>
                 </div>
@@ -1828,12 +1961,15 @@ def render_registrar_solicitud():
     )
     render_eciem_nav_pills(total_sol, en_proc)
 
-    asignaturas, estudiantes = cargar_catalogos()
     mapa_estudiantes = {normalizar_rut(e["rut"]): e for e in estudiantes}
-
     if not asignaturas:
         st.markdown('<div class="ucn-strip-err">Faltan asignaturas en la base de datos.</div>', unsafe_allow_html=True)
         return
+
+    mapa_ofertas = {}
+    for o in ofertas:
+        doc_d = o.get("dim_docente") or {}
+        mapa_ofertas[(str(o["periodo"]), int(o["id_asignatura"]), str(o["paralelo"]).strip().upper())] = doc_d.get("nombre_docente", "")
 
     # PASO 1: DATOS DEL ESTUDIANTE
     with st.container(border=True):
@@ -1876,7 +2012,7 @@ def render_registrar_solicitud():
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA (CON CONTROL ANTI-DUPLICADOS)
+    # PASO 2: ASIGNATURAS Y FECHAS DE INASISTENCIA
     with st.container(border=True):
         st.markdown(
             """
@@ -1884,15 +2020,17 @@ def render_registrar_solicitud():
             <div class="ucn-step-header">
                 <span class="ucn-step-num">2</span>
                 <span class="ucn-step-title">Asignaturas y fechas de inasistencia</span>
-                <span class="ucn-step-sub">Nivel (1° a 6°) → Asignatura · Paralelo libre</span>
+                <span class="ucn-step-sub">Nivel (1° a 6°) → Asignatura · Paralelo y Docente del período</span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        s1, s2, s3 = st.columns([1.05, 1.75, 0.70], gap="medium")
+        s0, s1, s2, s3 = st.columns([0.80, 1.0, 1.55, 0.65], gap="small")
+        with s0:
+            periodo_sel = st.selectbox("Período", periodos_opc, index=0, key="reg_periodo_sel")
         with s1:
-            nivel_label = st.selectbox("Nivel (Semestre)", list(NIVELES_MAPA.keys()), key="reg_nivel_sel")
+            nivel_label = st.selectbox("Nivel", list(NIVELES_MAPA.keys()), key="reg_nivel_sel")
             nivel_num = NIVELES_MAPA[nivel_label]
 
         asig_filtradas = [
@@ -1907,15 +2045,24 @@ def render_registrar_solicitud():
         with s3:
             paralelo_input = st.text_input("Paralelo", placeholder="Ej.: A, B, 1")
 
-        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+        asig_actual_obj = mapa_asig[asig_label]
+        par_preview = paralelo_input.strip().upper()
+        doc_detectado = mapa_ofertas.get((periodo_sel, int(asig_actual_obj["id_asignatura"]), par_preview), "")
 
-        d1, d2, d3 = st.columns([1.0, 1.0, 1.15], gap="medium", vertical_alignment="bottom")
+        d1, d2, d3, d4 = st.columns([1.0, 1.0, 1.25, 1.05], gap="small", vertical_alignment="bottom")
         with d1:
             f_inicio = st.date_input("Fecha de inicio", value=date.today(), format="DD/MM/YYYY")
         with d2:
             f_termino = st.date_input("Fecha de término", value=date.today(), format="DD/MM/YYYY")
         with d3:
-            agregar_clic = st.button("+ Agregar otra asignatura", type="secondary", use_container_width=True)
+            docente_input = st.text_input(
+                "Docente del paralelo",
+                value=doc_detectado,
+                placeholder="Ej.: Carlos Silva (opcional)",
+                help="Si el paralelo ya fue cargado en este período se completa solo; si es nuevo, escríbelo aquí.",
+            )
+        with d4:
+            agregar_clic = st.button("+ Agregar asignatura", type="secondary", use_container_width=True)
 
         if f_termino < f_inicio:
             st.markdown(
@@ -1925,14 +2072,13 @@ def render_registrar_solicitud():
 
         if agregar_clic:
             par_limpio = paralelo_input.strip().upper()
-            asig_obj = mapa_asig[asig_label]
             if f_termino < f_inicio:
                 st.markdown('<div class="ucn-strip-err">Corrige las fechas antes de agregar el detalle.</div>', unsafe_allow_html=True)
             elif not par_limpio:
                 st.markdown('<div class="ucn-strip-err">Escribe el paralelo antes de agregar (Ej.: A, B, 1).</div>', unsafe_allow_html=True)
             else:
                 cruce_local = any(
-                    d["id_asignatura"] == asig_obj["id_asignatura"]
+                    d["id_asignatura"] == asig_actual_obj["id_asignatura"]
                     and d["paralelo"] == par_limpio
                     and f_inicio <= d["fecha_termino"]
                     and f_termino >= d["fecha_inicio"]
@@ -1940,7 +2086,7 @@ def render_registrar_solicitud():
                 )
                 msg_bd = (
                     verificar_duplicado_o_cruce(
-                        df_all, normalizar_rut(rut_formateado), asig_obj["id_asignatura"], par_limpio, f_inicio, f_termino
+                        df_all, normalizar_rut(rut_formateado), asig_actual_obj["id_asignatura"], par_limpio, f_inicio, f_termino
                     )
                     if rut_valido
                     else None
@@ -1952,12 +2098,13 @@ def render_registrar_solicitud():
                 else:
                     st.session_state.detalles_pendientes.append(
                         {
-                            "id_asignatura": asig_obj["id_asignatura"],
+                            "id_asignatura": asig_actual_obj["id_asignatura"],
                             "carrera": carrera_sel,
                             "nivel": nivel_num,
-                            "codigo_asignatura": asig_obj["codigo_asignatura"],
-                            "nombre_asignatura": asig_obj["nombre_asignatura"],
+                            "codigo_asignatura": asig_actual_obj["codigo_asignatura"],
+                            "nombre_asignatura": asig_actual_obj["nombre_asignatura"],
                             "paralelo": par_limpio,
+                            "docente": docente_input.strip(),
                             "fecha_inicio": f_inicio,
                             "fecha_termino": f_termino,
                         }
@@ -1971,6 +2118,7 @@ def render_registrar_solicitud():
                 f"<td>Nivel {esc(d['nivel'])}</td>"
                 f"<td>{esc(d['nombre_asignatura'])}</td>"
                 f"<td><strong>{esc(d['paralelo'])}</strong></td>"
+                f"<td>{esc(d.get('docente') or '—')}</td>"
                 f"<td>{esc(d['fecha_inicio'].strftime('%d/%m/%Y'))}</td>"
                 f"<td>{esc(d['fecha_termino'].strftime('%d/%m/%Y'))}</td></tr>"
                 for i, d in enumerate(st.session_state.detalles_pendientes)
@@ -1979,7 +2127,7 @@ def render_registrar_solicitud():
                 f"""
                 <div class="ucn-table-wrap" style="margin-top:12px;">
                     <table class="ucn-table">
-                        <thead><tr><th>#</th><th>Carrera</th><th>Nivel</th><th>Asignatura</th><th>Paralelo</th><th>Desde</th><th>Hasta</th></tr></thead>
+                        <thead><tr><th>#</th><th>Carrera</th><th>Nivel</th><th>Asignatura</th><th>Paralelo</th><th>Docente</th><th>Desde</th><th>Hasta</th></tr></thead>
                         <tbody>{filas_p}</tbody>
                     </table>
                 </div>
@@ -2006,15 +2154,13 @@ def render_registrar_solicitud():
             unsafe_allow_html=True,
         )
 
-        m1, m2, m3, m4 = st.columns([1.0, 1.0, 1.2, 0.9], gap="medium")
+        m1, m2, m3 = st.columns([1.0, 1.0, 1.5], gap="medium")
         with m1:
             fecha_entrega = st.date_input("Fecha de entrega", value=date.today(), format="DD/MM/YYYY")
         with m2:
             fecha_recepcion = st.date_input("Fecha de recepción", value=date.today(), format="DD/MM/YYYY")
         with m3:
             tipo_doc = st.text_input("Tipo de documento", placeholder="Ej.: Certificado médico")
-        with m4:
-            periodo_sel = st.selectbox("Período", PERIODOS_DISPONIBLES)
 
         archivo_respaldo = st.file_uploader(
             "Respaldo recibido (PDF o imagen)",
@@ -2041,15 +2187,15 @@ def render_registrar_solicitud():
         detalles_a_guardar = list(st.session_state.detalles_pendientes)
         par_limpio = paralelo_input.strip().upper()
         if not detalles_a_guardar and f_termino >= f_inicio and par_limpio:
-            asig_obj = mapa_asig[asig_label]
             detalles_a_guardar.append(
                 {
-                    "id_asignatura": asig_obj["id_asignatura"],
+                    "id_asignatura": asig_actual_obj["id_asignatura"],
                     "carrera": carrera_sel,
                     "nivel": nivel_num,
-                    "codigo_asignatura": asig_obj["codigo_asignatura"],
-                    "nombre_asignatura": asig_obj["nombre_asignatura"],
+                    "codigo_asignatura": asig_actual_obj["codigo_asignatura"],
+                    "nombre_asignatura": asig_actual_obj["nombre_asignatura"],
                     "paralelo": par_limpio,
+                    "docente": docente_input.strip(),
                     "fecha_inicio": f_inicio,
                     "fecha_termino": f_termino,
                 }
@@ -2105,6 +2251,10 @@ def render_registrar_solicitud():
 
         registros = []
         for det in detalles_a_guardar:
+            if det.get("docente"):
+                asegurar_docente_y_oferta(
+                    det["docente"], periodo_sel, det["id_asignatura"], det["paralelo"], docentes
+                )
             registros.append(
                 {
                     "numero_solicitud": num_solicitud,
@@ -2133,6 +2283,7 @@ def render_registrar_solicitud():
             "numero_solicitud": num_solicitud,
             "rut_visual": rut_formateado,
             "nombre_estudiante": nombre_est_input.strip(),
+            "periodo": periodo_sel,
             "fecha_entrega": fecha_entrega,
             "nombre_archivo": archivo_respaldo.name,
             "detalles": detalles_a_guardar,
@@ -2218,6 +2369,7 @@ def render_consultar_revisar():
                 f"<tr>"
                 f"<td><span class='ucn-sol-id'>#{esc(r['numero_solicitud'])}</span></td>"
                 f"<td><strong>{esc(r['nombre_estudiante'])}</strong><br><span style='font-size:12px;color:#64748B;'>{esc(r['rut_estudiante'])}</span></td>"
+                f"<td>{esc(r['periodo'])}</td>"
                 f"<td>📅 {esc(f_ent)}</td>"
                 f"<td>Nivel {esc(r['semestre'])} · {esc(r['nombre_asignatura'])}</td>"
                 f"<td><strong>{esc(r['paralelo'])}</strong></td>"
@@ -2232,7 +2384,7 @@ def render_consultar_revisar():
                 <table class="ucn-table">
                     <thead>
                         <tr>
-                            <th>Solicitud</th><th>Estudiante</th><th>Entrega</th>
+                            <th>Solicitud</th><th>Estudiante</th><th>Período</th><th>Entrega</th>
                             <th>Asignatura</th><th>Paralelo</th><th>Inasistencia</th><th>Estado actual</th>
                         </tr>
                     </thead>
@@ -2359,7 +2511,7 @@ def render_consultar_revisar():
                 </div>
                 <div style="font-size:14px;color:#1E293B;margin-bottom:8px;">
                     <strong>{esc(primera['nombre_estudiante'])}</strong> · {esc(primera['rut_estudiante'])}<br>
-                    <span style="font-size:12.5px;color:#475569;">{esc(primera['nombre_carrera'])}</span>
+                    <span style="font-size:12.5px;color:#475569;">{esc(primera['nombre_carrera'])} · Período {esc(primera['periodo'])}</span>
                 </div>
                 <div style="font-size:13px;color:#334155;margin-bottom:12px;">
                     {detalles_txt}
@@ -2436,7 +2588,7 @@ def render_consultar_revisar():
             )
 
 # ==============================================================================
-# PANTALLA 05: CARGAR PLANILLA (CON CONTROL ANTI-DUPLICADOS CONTRA BDD)
+# PANTALLA 05: CARGAR PLANILLA (AUTO-CARGA DOCENTES Y OFERTA SEMESTRAL + ANTI-DUP)
 # ==============================================================================
 def render_cargar_planilla():
     if st.session_state.usuario["rol"] != "Secretaría":
@@ -2444,6 +2596,9 @@ def render_cargar_planilla():
         st.rerun()
 
     df_all = cargar_hechos_detallados()
+    asignaturas, estudiantes, docentes, ofertas = cargar_catalogos()
+    periodos_opc = obtener_periodos_dinamicos(df_all, ofertas)
+
     total_sol = df_all["numero_solicitud"].nunique() if not df_all.empty else 0
     en_proc = df_all[df_all["estado"] == "En proceso"]["numero_solicitud"].nunique() if not df_all.empty else 0
 
@@ -2454,7 +2609,8 @@ def render_cargar_planilla():
         render_banner("Carga confirmada", "Resultado de la incorporación desde planilla.")
         render_eciem_nav_pills(total_sol, en_proc)
         st.markdown(
-            f'<div class="ucn-strip-ok">{res["validas"]} registro(s) cargado(s). {res["errores"]} fila(s) omitida(s) por error o duplicado.</div>',
+            f'<div class="ucn-strip-ok">{res["validas"]} registro(s) cargado(s) en período {esc(res["periodo"])}. '
+            f'{res["errores"]} fila(s) omitida(s) por error o duplicado.</div>',
             unsafe_allow_html=True,
         )
         with st.container(border=True):
@@ -2463,7 +2619,8 @@ def render_cargar_planilla():
                 <span class="ucn-solid-card"></span>
                 <div style="font-size:18px;font-weight:700;color:#003A70;margin-bottom:6px;">📄 {esc(res['archivo'])}</div>
                 <div style="font-size:14px;color:#334155;line-height:1.6;">
-                    Las filas válidas quedaron incorporadas correctamente en el sistema.<br>
+                    Las filas válidas y las asignaciones <strong>Docente → Asignatura / Paralelo</strong> del período
+                    <strong>{esc(res['periodo'])}</strong> quedaron incorporadas en el sistema.<br>
                     {f"Corrige las {res['errores']} fila(s) con observaciones antes de volver a cargarlas." if res["errores"] > 0 else "No se detectaron errores en la planilla."}
                 </div>
                 """,
@@ -2480,10 +2637,8 @@ def render_cargar_planilla():
             st.rerun()
         return
 
-    render_banner("Cargar planilla", "Vista previa y validación antes de incorporar los registros.")
+    render_banner("Cargar planilla", "Incorpora solicitudes y actualiza automáticamente la oferta docente del período.")
     render_eciem_nav_pills(total_sol, en_proc)
-
-    asignaturas, estudiantes = cargar_catalogos()
 
     with st.container(border=True):
         st.markdown('<span class="ucn-solid-card"></span>', unsafe_allow_html=True)
@@ -2491,13 +2646,19 @@ def render_cargar_planilla():
         with c1:
             archivo = st.file_uploader("Archivo de entrada (.csv o .xlsx)", type=["csv", "xlsx"])
         with c2:
-            periodo_sel = st.selectbox("Período académico", PERIODOS_DISPONIBLES)
+            periodo_sel = st.selectbox("Período académico", periodos_opc, index=0)
 
     if not archivo:
         return
 
     try:
-        df_raw = pd.read_csv(archivo) if archivo.name.endswith(".csv") else pd.read_excel(archivo)
+        if archivo.name.endswith(".csv"):
+            raw_bytes = archivo.getvalue()
+            primera_linea = raw_bytes.splitlines()[0].decode("utf-8-sig", errors="ignore")
+            sep_det = ";" if primera_linea.count(";") > primera_linea.count(",") else ","
+            df_raw = pd.read_csv(io.BytesIO(raw_bytes), sep=sep_det)
+        else:
+            df_raw = pd.read_excel(archivo)
     except Exception as exc:
         st.markdown(f'<div class="ucn-strip-err">No se pudo leer el archivo: {esc(exc)}</div>', unsafe_allow_html=True)
         return
@@ -2561,6 +2722,7 @@ def render_cargar_planilla():
         rut_norm = normalizar_rut(rut_raw)
         rut_vis = formatear_rut_visual(rut_raw) if rut_raw else ""
         nom_raw = "" if pd.isna(row["Nombre"]) else str(row["Nombre"]).strip()
+        doc_raw = "" if pd.isna(row["Docente"]) else str(row["Docente"]).strip()
         est_obj = mapa_est.get(rut_norm)
 
         if not rut_raw or not validar_rut_chileno(rut_raw):
@@ -2608,7 +2770,7 @@ def render_cargar_planilla():
 
         val_txt = "Válida" if not errores_fila else "Error: " + "; ".join(errores_fila)
         vista_previa.append(
-            (fila_excel, rut_vis or rut_raw, nom_raw, asig_raw, par_final, row["Fecha inicio"], row["Fecha Termino"], val_txt)
+            (fila_excel, rut_vis or rut_raw, nom_raw, asig_raw, par_final, doc_raw or "—", row["Fecha inicio"], row["Fecha Termino"], val_txt)
         )
         if not errores_fila:
             filas_validas.append(
@@ -2618,6 +2780,7 @@ def render_cargar_planilla():
                     "carrera": asig_obj["carrera"],
                     "id_asignatura": asig_obj["id_asignatura"],
                     "paralelo": par_final,
+                    "docente": doc_raw,
                     "fecha_entrega": f_entrega,
                     "fecha_inicio": f_ini,
                     "fecha_termino": f_ter,
@@ -2629,7 +2792,7 @@ def render_cargar_planilla():
     filas_html = "".join(
         f"<tr><td>{esc(f[0])}</td><td>{esc(f[1])}</td><td><strong>{esc(f[2])}</strong></td>"
         f"<td>{esc(f[3])}</td><td><strong>{esc(f[4])}</strong></td><td>{esc(f[5])}</td>"
-        f"<td>{esc(f[6])}</td><td>{badge_validacion_html(f[7])}</td></tr>"
+        f"<td>{esc(f[6])}</td><td>{esc(f[7])}</td><td>{badge_validacion_html(f[8])}</td></tr>"
         for f in vista_previa
     )
 
@@ -2641,7 +2804,7 @@ def render_cargar_planilla():
                 <thead>
                     <tr>
                         <th>Fila</th><th>RUT</th><th>Nombre</th><th>Asignatura</th>
-                        <th>Paralelo</th><th>Inicio</th><th>Término</th><th>Validación</th>
+                        <th>Paralelo</th><th>Docente</th><th>Inicio</th><th>Término</th><th>Validación</th>
                     </tr>
                 </thead>
                 <tbody>{filas_html}</tbody>
@@ -2662,8 +2825,7 @@ def render_cargar_planilla():
         id_func = st.session_state.usuario["id_funcionario"]
 
         for item in filas_validas:
-            est_prev = mapa_est.get(item["rut_estudiante"])
-            if not est_prev:
+            if item["rut_estudiante"] not in mapa_est:
                 supabase.table("dim_estudiante").upsert(
                     {
                         "rut": item["rut_estudiante"],
@@ -2675,6 +2837,11 @@ def render_cargar_planilla():
                     on_conflict="rut",
                 ).execute()
                 mapa_est[item["rut_estudiante"]] = {"rut": item["rut_estudiante"]}
+
+            if item["docente"]:
+                asegurar_docente_y_oferta(
+                    item["docente"], periodo_sel, item["id_asignatura"], item["paralelo"], docentes
+                )
 
             clave_g = (item["rut_estudiante"], item["fecha_entrega"].isoformat())
             if clave_g not in mapa_sol:
@@ -2710,6 +2877,7 @@ def render_cargar_planilla():
         supabase.table("hechos_justificacion").insert(registros_insert).execute()
         st.session_state.ultima_carga_confirmada = {
             "archivo": archivo.name,
+            "periodo": periodo_sel,
             "validas": n_val,
             "errores": n_err,
         }
@@ -2724,6 +2892,9 @@ def render_cargar_planilla():
 # ==============================================================================
 def render_generar_reporte():
     df = cargar_hechos_detallados()
+    _, _, _, ofertas = cargar_catalogos()
+    periodos_opc = obtener_periodos_dinamicos(df, ofertas)
+
     total_sol = df["numero_solicitud"].nunique() if not df.empty else 0
     en_proc = df[df["estado"] == "En proceso"]["numero_solicitud"].nunique() if not df.empty else 0
 
@@ -2731,7 +2902,7 @@ def render_generar_reporte():
 
     carreras_opc = ["Todas"] + CARRERAS_OFICIALES
     filtros_guardados = st.session_state.rep_filtros
-    idx_per = PERIODOS_DISPONIBLES.index(filtros_guardados["periodo"]) if filtros_guardados["periodo"] in PERIODOS_DISPONIBLES else 0
+    idx_per = periodos_opc.index(filtros_guardados["periodo"]) if filtros_guardados["periodo"] in periodos_opc else 0
     idx_car = carreras_opc.index(filtros_guardados.get("carrera", "Todas")) if filtros_guardados.get("carrera", "Todas") in carreras_opc else 0
     idx_est = ESTADOS_OFICIALES.index(filtros_guardados["estado"]) if filtros_guardados["estado"] in ESTADOS_OFICIALES else 1
 
@@ -2740,7 +2911,7 @@ def render_generar_reporte():
         render_eciem_nav_pills(total_sol, en_proc)
         c1, c2, c3 = st.columns(3, gap="medium")
         with c1:
-            periodo_sel = st.selectbox("Período académico", PERIODOS_DISPONIBLES, index=idx_per)
+            periodo_sel = st.selectbox("Período académico", periodos_opc, index=idx_per)
         with c2:
             carrera_sel = st.selectbox("Carrera", carreras_opc, index=idx_car)
         with c3:
